@@ -7,7 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 FRED_API_KEY = os.getenv("FRED_API_KEY")
-fred = Fred(api_key=FRED_API_KEY)
+
+def _get_fred():
+    if not FRED_API_KEY:
+        raise ValueError("FRED_API_KEY environment variable is not set.")
+    return Fred(api_key=FRED_API_KEY)
 
 INDICATORS = {
     # --- Rates & Yield Curve ---
@@ -52,6 +56,7 @@ os.makedirs(MACRO_DATA_DIR, exist_ok=True)
 
 
 def fetch_macro_data(start="2005-01-01"):
+    fred = _get_fred()
     data = {}
 
     for name, code in INDICATORS.items():

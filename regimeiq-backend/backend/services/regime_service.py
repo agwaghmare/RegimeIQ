@@ -1,20 +1,320 @@
+import os
 import pandas as pd
 
-def classify_regime(market_df, macro_df):
-    df = market_df.join(macro_df, how="inner")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MACRO_CSV = os.path.join(BASE_DIR, "data", "macroData", "macro_data.csv")
+MARKET_CSV = os.path.join(BASE_DIR, "data", "marketData", "market_features.csv")
 
-    conditions = []
 
-    for _, row in df.iterrows():
-        if row["yield_curve"] < 0:
-            conditions.append("Recession Risk")
-        elif row["sp500_drawdown"] < -0.2:
-            conditions.append("Crisis")
-        elif row["cpi_yoy"] > 4:
-            conditions.append("Inflation Regime")
-        else:
-            conditions.append("Expansion")
+def _clamp(val: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, val))
 
-    df["regime"] = conditions
 
+def _load_cached_macro() -> pd.DataFrame:
+    return pd.read_csv(MACRO_CSV, index_col=0, parse_dates=True)
+
+
+def _load_cached_market() -> pd.DataFrame:
+    df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=True)
+    if df.empty:
+        from services.market_service import compute_market_features
+        df = compute_market_features()
     return df
+
+
+def _trend(current: float, prev: float) -> str:
+    if current > prev * 1.005:
+        return "up"
+    if current < prev * 0.995:
+        return "down"
+    return "flat"
+
+
+def _status(value: float, thresholds: dict) -> str:
+    """thresholds = {"CRITICAL": fn, "WARNING": fn, "NEUTRAL": fn} checked in order."""
+    for label, check in thresholds.items():
+        if check(value):
+            return label
+    return "NORMAL"
+
+
+def _compute_growth_score(row: dict, prev: dict) -> float:
+    score = 0.0
+    unemp = row.get("unemployment", 5.0)
+    score += _clamp((5.0 - unemp) / 1.5, 0, 1)
+
+    yc = row.get("yield_curve_10y2y", 0.0)
+    score += _clamp((yc + 0.5) / 1.0, 0, 1)
+
+    indpro = row.get("indpro_yoy", 0.0)
+    score += _clamp(indpro / 3.0, 0, 1)
+
+    payrolls = row.get("payrolls_mom", 0.0)
+    score += _clamp(payrolls / 200.0, 0, 1)
+
+    return round(_clamp(score, 0, 4), 2)
+
+
+def _compute_inflation_score(row: dict) -> float:
+    """Higher = more inflationary pressure."""
+    score = 0.0
+
+    cpi = row.get("cpi_yoy", 2.0)
+    score += _clamp((cpi - 2.0) / 4.0, 0, 2)
+
+    pce = row.get("core_pce_yoy", 2.0)
+    score += _clamp((pce - 2.0) / 2.0, 0, 2)
+
+    return round(_clamp(score, 0, 4), 2)
+
+
+def _compute_financial_score(row: dict) -> float:
+    """Higher = more accommodative (good for risk assets)."""
+    score = 0.0
+
+    hy = row.get("credit_spread_hy", 4.0)
+    score += _clamp((6.0 - hy) / 4.0, 0, 1)
+
+    real_rate = row.get("real_rate_10y", 1.5)
+    score += _clamp((2.5 - real_rate) / 2.5, 0, 1)
+
+    nfci = row.get("financial_cond", 0.0)
+    score += _clamp((-nfci + 0.5) / 1.0, 0, 1)
+
+    ig = row.get("credit_spread_ig", 1.0)
+    score += _clamp((1.5 - ig) / 0.7, 0, 1)
+
+    return round(_clamp(score, 0, 4), 2)
+
+
+def _compute_market_risk_score(mrow: dict) -> float:
+    """Higher = better market conditions (low risk)."""
+    score = 0.0
+
+    vix = mrow.get("vix", 20.0)
+    score += _clamp((30.0 - vix) / 15.0, 0, 1)
+
+    drawdown = mrow.get("sp500_drawdown", 0.0)
+    score += _clamp((drawdown + 0.20) / 0.20, 0, 1)
+
+    mom1 = mrow.get("sp500_1m_mom", 0.0)
+    score += _clamp(mom1 / 0.03, 0, 1)
+
+    mom3 = mrow.get("sp500_3m_mom", 0.0)
+    score += _clamp(mom3 / 0.05, 0, 1)
+
+    return round(_clamp(score, 0, 4), 2)
+
+
+def _classify(growth: float, inflation: float, financial: float, market: float) -> tuple[str, float]:
+    composite = growth + financial + market - (inflation * 0.5)
+    if composite >= 8.5:
+        return "Risk-On", round(_clamp(0.45 + (composite - 8.5) / 20, 0.45, 0.90), 2)
+    if composite >= 5.5:
+        return "Expansion", round(_clamp(0.40 + (composite - 5.5) / 20, 0.40, 0.65), 2)
+    if composite >= 3.0:
+        return "Neutral", 0.45
+    return "Risk-Off", round(_clamp(0.40 + (3.0 - composite) / 10, 0.40, 0.80), 2)
+
+
+def _fmt_pct(val: float, decimals: int = 1) -> str:
+    return f"{val:.{decimals}f}%"
+
+
+def _fmt_val(val: float, decimals: int = 2) -> str:
+    return f"{val:.{decimals}f}"
+
+
+def get_regime_snapshot() -> dict:
+    macro_df = _load_cached_macro()
+    market_df = _load_cached_market()
+
+    macro = macro_df.tail(2)
+    m_row = macro.iloc[-1].to_dict()
+    m_prev = macro.iloc[-2].to_dict() if len(macro) > 1 else m_row
+
+    mkt = market_df.tail(2)
+    if len(mkt) == 0:
+        mk_row: dict = {}
+        mk_prev: dict = {}
+    else:
+        mk_row = mkt.iloc[-1].to_dict()
+        mk_prev = mkt.iloc[-2].to_dict() if len(mkt) > 1 else mk_row
+
+    growth = _compute_growth_score(m_row, m_prev)
+    inflation = _compute_inflation_score(m_row)
+    financial = _compute_financial_score(m_row)
+    market_risk = _compute_market_risk_score(mk_row)
+    total = round(growth + inflation + financial + market_risk, 2)
+
+    regime, probability = _classify(growth, inflation, financial, market_risk)
+
+    updated_at = str(macro_df.index[-1].date()) if hasattr(macro_df.index[-1], "date") else str(macro_df.index[-1])
+
+    # --- Growth metrics rows ---
+    unemp = m_row.get("unemployment", 0)
+    yc = m_row.get("yield_curve_10y2y", 0)
+    indpro = m_row.get("indpro_yoy", 0)
+    payrolls = m_row.get("payrolls_mom", 0)
+    fed_funds = m_row.get("fed_funds", 0)
+
+    growth_metrics = [
+        {
+            "metric": "Unemployment Rate",
+            "value": _fmt_pct(unemp),
+            "trend": _trend(unemp, m_prev.get("unemployment", unemp)),
+            "status": _status(unemp, {"CRITICAL": lambda v: v > 7, "WARNING": lambda v: v > 5.5}),
+        },
+        {
+            "metric": "Fed Funds Rate",
+            "value": _fmt_pct(fed_funds),
+            "trend": _trend(fed_funds, m_prev.get("fed_funds", fed_funds)),
+            "status": _status(fed_funds, {"WARNING": lambda v: v > 5, "NEUTRAL": lambda v: v > 3}),
+        },
+        {
+            "metric": "Yield Curve (10Y-2Y)",
+            "value": _fmt_val(yc),
+            "trend": _trend(yc, m_prev.get("yield_curve_10y2y", yc)),
+            "status": _status(yc, {"CRITICAL": lambda v: v < -0.5, "WARNING": lambda v: v < 0}),
+        },
+        {
+            "metric": "Industrial Production YoY",
+            "value": _fmt_pct(indpro),
+            "trend": _trend(indpro, m_prev.get("indpro_yoy", indpro)),
+            "status": _status(indpro, {"WARNING": lambda v: v < 0, "NEUTRAL": lambda v: v < 1}),
+        },
+        {
+            "metric": "Nonfarm Payrolls MoM",
+            "value": f"{int(payrolls):,}k",
+            "trend": _trend(payrolls, m_prev.get("payrolls_mom", payrolls)),
+            "status": _status(payrolls, {"CRITICAL": lambda v: v < 0, "WARNING": lambda v: v < 50}),
+        },
+    ]
+
+    # --- Inflation metrics rows ---
+    cpi_yoy = m_row.get("cpi_yoy", 0)
+    core_pce_yoy = m_row.get("core_pce_yoy", 0)
+    core_cpi_yoy = m_row.get("core_cpi_yoy", 0)
+    ppi_yoy = m_row.get("ppi_yoy", 0)
+
+    inflation_metrics = [
+        {
+            "metric": "CPI YoY",
+            "value": _fmt_pct(cpi_yoy),
+            "trend": _trend(cpi_yoy, m_prev.get("cpi_yoy", cpi_yoy)),
+            "status": _status(cpi_yoy, {"CRITICAL": lambda v: v > 5, "WARNING": lambda v: v > 3.5, "NEUTRAL": lambda v: v > 2.5}),
+        },
+        {
+            "metric": "Core CPI YoY",
+            "value": _fmt_pct(core_cpi_yoy),
+            "trend": _trend(core_cpi_yoy, m_prev.get("core_cpi_yoy", core_cpi_yoy)),
+            "status": _status(core_cpi_yoy, {"CRITICAL": lambda v: v > 5, "WARNING": lambda v: v > 3.5, "NEUTRAL": lambda v: v > 2.5}),
+        },
+        {
+            "metric": "Core PCE YoY",
+            "value": _fmt_pct(core_pce_yoy),
+            "trend": _trend(core_pce_yoy, m_prev.get("core_pce_yoy", core_pce_yoy)),
+            "status": _status(core_pce_yoy, {"CRITICAL": lambda v: v > 4, "WARNING": lambda v: v > 3, "NEUTRAL": lambda v: v > 2.5}),
+        },
+        {
+            "metric": "PPI YoY",
+            "value": _fmt_pct(ppi_yoy),
+            "trend": _trend(ppi_yoy, m_prev.get("ppi_yoy", ppi_yoy)),
+            "status": _status(ppi_yoy, {"CRITICAL": lambda v: v > 6, "WARNING": lambda v: v > 4, "NEUTRAL": lambda v: v > 2}),
+        },
+    ]
+
+    # --- Financial conditions rows ---
+    hy_spread = m_row.get("credit_spread_hy", 0)
+    ig_spread = m_row.get("credit_spread_ig", 0)
+    real_rate = m_row.get("real_rate_10y", 0)
+    nfci = m_row.get("financial_cond", 0)
+
+    financial_metrics = [
+        {
+            "metric": "HY Credit Spread (OAS)",
+            "value": f"{hy_spread:.2f}%",
+            "trend": _trend(hy_spread, m_prev.get("credit_spread_hy", hy_spread)),
+            "status": _status(hy_spread, {"CRITICAL": lambda v: v > 8, "WARNING": lambda v: v > 5, "NEUTRAL": lambda v: v > 3}),
+        },
+        {
+            "metric": "IG Credit Spread (OAS)",
+            "value": f"{ig_spread:.2f}%",
+            "trend": _trend(ig_spread, m_prev.get("credit_spread_ig", ig_spread)),
+            "status": _status(ig_spread, {"WARNING": lambda v: v > 2, "NEUTRAL": lambda v: v > 1.2}),
+        },
+        {
+            "metric": "Real Rates (10Y)",
+            "value": _fmt_pct(real_rate),
+            "trend": _trend(real_rate, m_prev.get("real_rate_10y", real_rate)),
+            "status": _status(real_rate, {"WARNING": lambda v: v > 2.5, "NEUTRAL": lambda v: v > 1.5}),
+        },
+        {
+            "metric": "Chicago NFCI",
+            "value": _fmt_val(nfci),
+            "trend": _trend(nfci, m_prev.get("financial_cond", nfci)),
+            "status": _status(nfci, {"CRITICAL": lambda v: v > 0.5, "WARNING": lambda v: v > 0, "NEUTRAL": lambda v: v > -0.3}),
+        },
+    ]
+
+    # --- Market risk rows ---
+    vix = mk_row.get("vix", 0)
+    drawdown = mk_row.get("sp500_drawdown", 0)
+    mom1 = mk_row.get("sp500_1m_mom", 0)
+    mom3 = mk_row.get("sp500_3m_mom", 0)
+
+    market_metrics = [
+        {
+            "metric": "VIX Index",
+            "value": _fmt_val(vix),
+            "trend": _trend(vix, mk_prev.get("vix", vix)),
+            "status": _status(vix, {"CRITICAL": lambda v: v > 30, "WARNING": lambda v: v > 20, "NEUTRAL": lambda v: v > 15}),
+        },
+        {
+            "metric": "S&P 500 Drawdown",
+            "value": _fmt_pct(drawdown * 100),
+            "trend": _trend(drawdown, mk_prev.get("sp500_drawdown", drawdown)),
+            "status": _status(drawdown, {"CRITICAL": lambda v: v < -0.20, "WARNING": lambda v: v < -0.10, "NEUTRAL": lambda v: v < -0.05}),
+        },
+        {
+            "metric": "S&P 500 1M Return",
+            "value": _fmt_pct(mom1 * 100),
+            "trend": _trend(mom1, mk_prev.get("sp500_1m_mom", mom1)),
+            "status": _status(mom1, {"CRITICAL": lambda v: v < -0.10, "WARNING": lambda v: v < -0.03, "NEUTRAL": lambda v: v < 0}),
+        },
+        {
+            "metric": "S&P 500 3M Return",
+            "value": _fmt_pct(mom3 * 100),
+            "trend": _trend(mom3, mk_prev.get("sp500_3m_mom", mom3)),
+            "status": _status(mom3, {"CRITICAL": lambda v: v < -0.15, "WARNING": lambda v: v < -0.05, "NEUTRAL": lambda v: v < 0}),
+        },
+    ]
+
+    # --- Portfolio allocation based on regime ---
+    if regime == "Risk-On":
+        allocation = {"equities": 0.65, "bonds": 0.25, "alternatives": 0.10}
+    elif regime == "Expansion":
+        allocation = {"equities": 0.55, "bonds": 0.35, "alternatives": 0.10}
+    elif regime == "Neutral":
+        allocation = {"equities": 0.45, "bonds": 0.45, "alternatives": 0.10}
+    else:
+        allocation = {"equities": 0.25, "bonds": 0.60, "alternatives": 0.15}
+
+    return {
+        "regime": regime,
+        "probability": probability,
+        "total_score": total,
+        "max_score": 16.0,
+        "scores": {
+            "growth": growth,
+            "inflation": inflation,
+            "financial_conditions": financial,
+            "market_risk": market_risk,
+        },
+        "growth_metrics": growth_metrics,
+        "inflation_metrics": inflation_metrics,
+        "financial_metrics": financial_metrics,
+        "market_metrics": market_metrics,
+        "allocation": allocation,
+        "updated_at": updated_at,
+    }
