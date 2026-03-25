@@ -10,4 +10,28 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/regime': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/market': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/macro': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/signals': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/allocation': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

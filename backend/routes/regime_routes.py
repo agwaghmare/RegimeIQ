@@ -3,7 +3,7 @@ Regime API routes.
 All data flows through regime_pipeline – no direct service imports.
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 
 from services.regime_pipeline import (
@@ -11,6 +11,7 @@ from services.regime_pipeline import (
     run_historical_pipeline,
     run_summary_pipeline,
 )
+from services.regime_snapshot_service import get_regime_snapshot
 from services.signals_engine import compute_signals_latest
 from services.data_merge_service import get_master_dataset
 from schema.regime import (
@@ -21,6 +22,19 @@ from schema.regime import (
 )
 
 router = APIRouter()
+
+
+@router.get(
+    "/",
+    summary="Full regime snapshot for dashboard frontend",
+)
+def get_regime_dashboard():
+    try:
+        return get_regime_snapshot()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=f"Cached data not found: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get(

@@ -39,6 +39,12 @@ _cache: dict = {
 _CACHE_TTL = 3600  # 1 hour
 
 
+def clear_cache():
+    """Reset the in-memory historical cache."""
+    _cache["historical_df"] = None
+    _cache["timestamp"] = 0.0
+
+
 def _get_historical_df() -> pd.DataFrame:
     """Return cached historical regime DataFrame, recomputing if stale."""
     now = time.time()
