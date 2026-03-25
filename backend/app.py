@@ -4,7 +4,7 @@ from routes.router import api_router
 
 # Allowed origins (frontend URLs)
 CORS_ORIGINS = [
-    "http://localhost:3000",  # your React dev server
+    "http://localhost:5173",  # your React dev server
     "http://127.0.0.1:3000",
 ]
 
