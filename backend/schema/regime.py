@@ -61,6 +61,7 @@ class InflationSignals(BaseModel):
 class FinancialSignals(BaseModel):
     credit_spread: Optional[float] = None
     credit_spread_3m_change: Optional[float] = None
+    credit_spread_3m_pct_change: Optional[float] = None
     credit_spread_widening: bool
     nominal_10y_3m_change: Optional[float] = None
     rate_rising_sharply: bool

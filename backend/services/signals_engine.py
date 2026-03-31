@@ -89,6 +89,7 @@ def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
     else:
         # Daily fallback when only raw daily series is available.
         out["credit_spread_3m_change"] = df["credit_spread_hy"].diff(63)
+    out["credit_spread_3m_pct_change"] = df["credit_spread_hy"].pct_change(63)
     out["credit_spread_widening"] = out["credit_spread_3m_change"] > 0.5
 
     if "nominal_10y_3m_change" in df.columns:
@@ -97,8 +98,8 @@ def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
         out["nominal_10y_3m_change"] = df["nominal_10y"].diff(63)
     else:
         out["nominal_10y_3m_change"] = df["yield_curve_10y3m"].diff(63)
-    # Treat large 3M rate moves in either direction as financial stress.
-    out["rate_rising_sharply"] = out["nominal_10y_3m_change"].abs() > 0.05
+    # Keep this as a genuine rate-shock flag; avoid triggering on routine repricing.
+    out["rate_rising_sharply"] = out["nominal_10y_3m_change"].abs() > 0.15
 
     out["dxy_3m_pct_change"] = df["uup"].pct_change(63)
     out["dollar_strengthening"] = out["dxy_3m_pct_change"] > 0.03
@@ -125,8 +126,8 @@ def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
 
     cummax = df["sp500"].cummax()
     out["sp500_drawdown"] = (df["sp500"] - cummax) / cummax
-    # Use a more responsive threshold so persistent risk-off tape is captured earlier.
-    out["drawdown_severe"] = out["sp500_drawdown"] < -0.08
+    # Reserve severe drawdown flag for deeper equity stress.
+    out["drawdown_severe"] = out["sp500_drawdown"] < -0.12
 
     out["sp500_200ma"] = df["sp500"].rolling(200).mean()
     out["sp500_200ma_distance"] = (
@@ -184,6 +185,7 @@ def compute_signals_latest(df: pd.DataFrame) -> dict:
         "financial": {
             "credit_spread": _safe_float(row["credit_spread"]),
             "credit_spread_3m_change": _safe_float(row["credit_spread_3m_change"]),
+            "credit_spread_3m_pct_change": _safe_float(row["credit_spread_3m_pct_change"]),
             "credit_spread_widening": _safe_bool(row["credit_spread_widening"]),
             "nominal_10y_3m_change": _safe_float(row["nominal_10y_3m_change"]),
             "rate_rising_sharply": _safe_bool(row["rate_rising_sharply"]),

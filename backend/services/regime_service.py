@@ -5,9 +5,9 @@ Maps total scores → regime labels + probability.
 
 Regime bands:
   0–3   Risk-On    (green)
-  4–7   Neutral    (yellow)
-  8–10  Risk-Off   (orange)
-  11–13 Crisis     (red)
+  4–6   Neutral    (yellow)
+  7–9   Risk-Off   (orange)
+  10–13 Crisis     (red)
 
 Provides point-in-time classification and full historical regime series.
 """
@@ -27,9 +27,9 @@ from services.scoring_engine import (
 
 REGIME_BANDS: list[tuple[int, int, str, str, int]] = [
     (0,  3,  "Risk-On",  "#22c55e", 1),
-    (4,  7,  "Neutral",  "#eab308", 2),
-    (8,  10, "Risk-Off", "#f97316", 3),
-    (11, 13, "Crisis",   "#ef4444", 4),
+    (4,  6,  "Neutral",  "#eab308", 2),
+    (7,  9,  "Risk-Off", "#f97316", 3),
+    (10, 13, "Crisis",   "#ef4444", 4),
 ]
 
 
@@ -105,8 +105,8 @@ def classify_regime_historical(scores_df: pd.DataFrame) -> pd.DataFrame:
     # Map total_score → regime using np.select
     conditions = [
         df["total_score"] <= 3,
-        df["total_score"] <= 7,
-        df["total_score"] <= 10,
+        df["total_score"] <= 6,
+        df["total_score"] <= 9,
         df["total_score"] <= 13,
     ]
 
