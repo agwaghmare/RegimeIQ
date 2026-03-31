@@ -56,6 +56,8 @@ def _enrich_macro(macro: pd.DataFrame) -> pd.DataFrame:
 
     # --- CPI YoY 3-month trend (acceleration) ---
     df["cpi_3m_change"] = df["cpi_yoy"] - df["cpi_yoy"].shift(3)
+    # --- Policy path over last 3 months (proxy for "no-cuts" regime) ---
+    df["fed_funds_3m_change"] = df["fed_funds"] - df["fed_funds"].shift(3)
 
     # --- Credit spread 3-month change ---
     df["credit_spread_3m_change"] = (
@@ -110,7 +112,7 @@ def build_master_dataset(save: bool = True) -> pd.DataFrame:
     if save:
         os.makedirs(os.path.dirname(MASTER_CSV), exist_ok=True)
         master.to_csv(MASTER_CSV)
-        print(f"[merge] Master dataset saved → {MASTER_CSV}")
+        print(f"[merge] Master dataset saved -> {MASTER_CSV}")
 
     return master
 
@@ -125,6 +127,15 @@ def get_master_dataset() -> pd.DataFrame:
     if os.path.exists(MASTER_CSV):
         df = pd.read_csv(MASTER_CSV, index_col=0, parse_dates=True)
         df.index.name = "Date"
+
+        # Hygiene guard: historical bad caches may store non-PMI values
+        # (e.g. ~12,000 manufacturing employment) under pmi_ism.
+        if "pmi_ism" in df.columns:
+            pmi = pd.to_numeric(df["pmi_ism"], errors="coerce")
+            invalid = (pmi < 10) | (pmi > 90)
+            if invalid.any():
+                df.loc[invalid, "pmi_ism"] = np.nan
+
         return df
     return build_master_dataset()
 
@@ -141,7 +152,7 @@ if __name__ == "__main__":
     print("Building master dataset...")
     df = build_master_dataset()
     print(f"\nFinal shape: {df.shape}")
-    print(f"Date range: {df.index[0]} → {df.index[-1]}")
+    print(f"Date range: {df.index[0]} -> {df.index[-1]}")
     print(f"\nColumns ({len(df.columns)}):")
     for c in df.columns:
         non_null = df[c].notna().sum()
