@@ -1,18 +1,40 @@
 type NavItem = {
   icon: string
   label: string
-  active?: boolean
+  key: 'dashboard' | 'globalMacro' | 'riskMetrics' | 'portfolio' | 'archive'
 }
 
 const navItems: NavItem[] = [
-  { icon: 'dashboard', label: 'Dashboard', active: true },
-  { icon: 'public', label: 'Global Macro' },
-  { icon: 'warning', label: 'Risk Metrics' },
-  { icon: 'pie_chart', label: 'Portfolio' },
-  { icon: 'history', label: 'Archive' },
+  { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
+  { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
+  { icon: 'warning', label: 'Risk Metrics', key: 'riskMetrics' },
+  { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
+  { icon: 'history', label: 'Archive', key: 'archive' },
 ]
 
-export function SideNav() {
+interface Props {
+  activeView: 'dashboard' | 'globalMacro'
+  onSelectView: (view: 'dashboard' | 'globalMacro') => void
+}
+
+export function SideNav({ activeView, onSelectView }: Props) {
+  const handleClick = (key: NavItem['key']) => {
+    if (key === 'dashboard' || key === 'globalMacro') {
+      onSelectView(key)
+      return
+    }
+    const idMap: Record<'riskMetrics' | 'portfolio' | 'archive', string> = {
+      riskMetrics: 'risk-metrics',
+      portfolio: 'portfolio',
+      archive: 'archive',
+    }
+    onSelectView('dashboard')
+    window.setTimeout(() => {
+      const el = document.getElementById(idMap[key as 'riskMetrics' | 'portfolio' | 'archive'])
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
   return (
     <aside className="fixed left-0 top-0 hidden md:flex flex-col h-screen w-64 bg-[#131316] py-6 space-y-2 z-40 pt-16 font-['Inter'] text-xs font-medium tracking-wide">
       <div className="px-6 mb-8 mt-4">
@@ -20,25 +42,25 @@ export function SideNav() {
         <div className="text-[10px] text-on-surface-variant opacity-60">V3.4.2</div>
       </div>
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) =>
-          item.active ? (
-            <div
+        {navItems.map((item) => {
+          const isActive =
+            (item.key === 'dashboard' && activeView === 'dashboard') ||
+            (item.key === 'globalMacro' && activeView === 'globalMacro')
+          return (
+            <button
               key={item.label}
-              className="px-3 py-2 mx-3 bg-[#19191d] text-[#4edea3] border-r-2 border-[#4edea3] flex items-center gap-3 cursor-pointer"
+              onClick={() => handleClick(item.key)}
+              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out ${
+                isActive
+                  ? 'bg-[#19191d] text-[#4edea3] border-r-2 border-[#4edea3]'
+                  : 'text-[#94a3b8] hover:bg-[#19191d] hover:text-[#e7e4ec]'
+              }`}
             >
               <span className="material-symbols-outlined text-lg">{item.icon}</span>
               <span>{item.label}</span>
-            </div>
-          ) : (
-            <div
-              key={item.label}
-              className="px-3 py-2 mx-3 text-[#94a3b8] hover:bg-[#19191d] hover:text-[#e7e4ec] flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out"
-            >
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </div>
+            </button>
           )
-        )}
+        })}
       </nav>
       <div className="px-6 pt-4 border-t border-outline-variant/10">
         <button className="w-full py-2 bg-primary text-on-primary font-bold rounded hover:opacity-90 transition-all flex items-center justify-center gap-2">

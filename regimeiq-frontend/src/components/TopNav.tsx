@@ -1,9 +1,19 @@
 interface Props {
   regime: string
   probability: number
+  isLive?: boolean
+  lastUpdatedAt?: number | null
 }
 
-export function TopNav({ regime, probability }: Props) {
+function formatLastSeen(timestamp: number | null | undefined): string {
+  if (!timestamp) return 'Waiting for first sync'
+  const elapsedMs = Date.now() - timestamp
+  if (elapsedMs < 60000) return 'Updated just now'
+  const minutes = Math.floor(elapsedMs / 60000)
+  return `Updated ${minutes}m ago`
+}
+
+export function TopNav({ regime, probability, isLive = false, lastUpdatedAt = null }: Props) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0e0e10] flex justify-between items-center w-full px-6 py-3 max-w-[1920px] mx-auto font-['Inter'] tabular-nums text-sm antialiased">
       <div className="flex items-center gap-8">
@@ -23,6 +33,12 @@ export function TopNav({ regime, probability }: Props) {
         <div className="text-xs font-medium text-on-surface-variant flex items-center gap-1">
           <span>Prob:</span>
           <span className="text-primary font-bold">{Math.round(probability * 100)}%</span>
+        </div>
+        <div className="text-xs text-on-surface-variant flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-primary' : 'bg-error'}`}></span>
+          <span>{isLive ? 'Live' : 'Paused'}</span>
+          <span className="opacity-80">|</span>
+          <span>{formatLastSeen(lastUpdatedAt)}</span>
         </div>
         <div className="h-8 w-[1px] bg-outline-variant opacity-20 mx-2"></div>
         <div className="flex items-center gap-3 text-[#94a3b8]">

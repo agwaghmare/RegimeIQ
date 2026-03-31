@@ -21,6 +21,34 @@ export interface Allocation {
   alternatives: number
 }
 
+export interface GlobalMacroSnapshot {
+  fed_funds_3m_change: number | null
+  real_rate_10y: number | null
+  cpi_yoy: number | null
+  dxy_3m_pct_change: number | null
+  boj_10y_yield: number | null
+  ecb_policy_rate: number | null
+  uk_10y_gilt_yield: number | null
+}
+
+export interface FedWatch {
+  source: string
+  as_of: string
+  next_3m: {
+    cut: number
+    hold: number
+    hike: number
+  }
+}
+
+export interface MacroReleaseCalendar {
+  as_of: string
+  releases: Array<{
+    event: string
+    date: string
+  }>
+}
+
 export interface RegimeData {
   regime: string
   probability: number
@@ -32,5 +60,8 @@ export interface RegimeData {
   financial_metrics: MetricRow[]
   market_metrics: MetricRow[]
   allocation: Allocation
+  fedwatch: FedWatch
+  macro_release_calendar: MacroReleaseCalendar
+  global_macro: GlobalMacroSnapshot
   updated_at: string
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useRegime } from './hooks/useRegime'
 import { TopNav } from './components/TopNav'
 import { SideNav } from './components/SideNav'
@@ -6,9 +7,11 @@ import { MetricsTable } from './components/MetricsTable'
 import { RegimeBreakdown } from './components/RegimeBreakdown'
 import { PortfolioAllocation } from './components/PortfolioAllocation'
 import { TerminalFeed } from './components/TerminalFeed'
+import { GlobalMacroTab } from './components/GlobalMacroTab'
 
 export default function App() {
-  const { data, loading, error, refetch } = useRegime()
+  const { data, loading, error, refetch, isLive, lastUpdatedAt } = useRegime()
+  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro'>('dashboard')
 
   if (loading) {
     return (
@@ -40,9 +43,17 @@ export default function App() {
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
-      <TopNav regime={data.regime} probability={data.probability} />
-      <SideNav />
-      <main className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6">
+      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} lastUpdatedAt={lastUpdatedAt} />
+      <SideNav activeView={activeView} onSelectView={setActiveView} />
+      {activeView === 'globalMacro' ? (
+        <GlobalMacroTab
+          updatedAt={data.updated_at}
+          globalMacro={data.global_macro}
+          fedwatch={data.fedwatch}
+          releaseCalendar={data.macro_release_calendar}
+        />
+      ) : (
+      <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6 scroll-smooth">
         {/* Dashboard Grid Content (9 Cols) */}
         <div className="col-span-12 lg:col-span-9 space-y-6">
           <ScoreCards scores={data.scores} />
@@ -50,7 +61,7 @@ export default function App() {
             <MetricsTable title="Growth Metrics" subtitle={`UPDATED: ${data.updated_at}`} rows={data.growth_metrics} />
             <MetricsTable title="Inflation Metrics" subtitle={data.regime.toUpperCase()} rows={data.inflation_metrics} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div id="risk-metrics" className="grid grid-cols-1 md:grid-cols-2 gap-6 scroll-mt-24">
             <MetricsTable title="Fin. Conditions" subtitle="FINANCIAL" rows={data.financial_metrics} />
             <MetricsTable title="Market Risk" subtitle="MARKET" rows={data.market_metrics} />
           </div>
@@ -65,10 +76,15 @@ export default function App() {
             max_score={data.max_score}
             scores={data.scores}
           />
-          <PortfolioAllocation allocation={data.allocation} regime={data.regime} />
-          <TerminalFeed />
+          <div id="portfolio" className="scroll-mt-24">
+            <PortfolioAllocation allocation={data.allocation} regime={data.regime} />
+          </div>
+          <div id="archive" className="scroll-mt-24">
+            <TerminalFeed />
+          </div>
         </aside>
       </main>
+      )}
 
       {/* FAB */}
       <div className="fixed bottom-6 right-6 z-50">
