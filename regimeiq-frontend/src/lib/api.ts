@@ -75,9 +75,43 @@ export interface GlobalMacroHistoryResponse {
   }
 }
 
+export interface HistoricalInsightsResponse {
+  timeline: Array<{ date: string; regime: string; total_score: number }>
+  event_overlays: Array<{ event: string; input_date: string; detected_date: string; regime: string; total_score: number }>
+  transitions: Array<{ date: string; from_regime: string | null; to_regime: string; new_allocation: { equities: number; bonds: number; gold: number } }>
+  avg_duration_days: Record<string, number>
+  allocation_history: Array<{ date: string; regime: string; equities: number; bonds: number; gold: number }>
+  performance_simulation: {
+    model_return: number
+    spy_return: number
+    model_max_drawdown: number
+    spy_max_drawdown: number
+    model_sharpe: number
+    spy_sharpe: number
+  }
+}
+
+export interface RiskLabResponse {
+  breakdown: {
+    growth: { score: number; max: number }
+    inflation: { score: number; max: number }
+    financial: { score: number; max: number }
+    market: { score: number; max: number }
+  }
+  stress_indicators: {
+    yield_curve_inverted: boolean
+    vix_above_25: boolean
+    credit_spreads_widening: boolean
+  }
+  volatility_regime: 'low' | 'elevated' | 'high'
+  current_drawdown: number
+  crash_probability: number
+  risk_drivers: string[]
+}
+
 function scaleToFour(s: { score: number; max: number }): number {
   if (!s.max) return 0
-  return (s.score / s.max) * 4
+  return Math.floor((s.score / s.max) * 4)
 }
 
 function fmt(v: unknown): string {
@@ -140,6 +174,7 @@ function rowsFromInflation(i: Record<string, unknown>): MetricRow[] {
 function rowsFromFinancial(f: Record<string, unknown>): MetricRow[] {
   return [
     { metric: 'HY credit spread', value: fmt(f.credit_spread), trend: 'flat', status: statusForBool(f.credit_spread_widening === true) },
+    { metric: 'HY credit spread % change', value: fmtPct(f.credit_spread_3m_pct_change), trend: trendForDelta(f.credit_spread_3m_pct_change), status: statusForBool(f.credit_spread_widening === true) },
     { metric: 'Spread 3M Δ', value: fmtPct(f.credit_spread_3m_change), trend: trendForDelta(f.credit_spread_3m_change), status: 'NEUTRAL' },
     { metric: '10Y 3M Δ', value: fmtPct(f.nominal_10y_3m_change), trend: trendForDelta(f.nominal_10y_3m_change), status: statusForBool(f.rate_rising_sharply === true) },
     { metric: 'DXY 3M %', value: fmtPct(f.dxy_3m_pct_change), trend: trendForDelta(f.dxy_3m_pct_change), status: statusForBool(f.dollar_strengthening === true) },
@@ -225,5 +260,11 @@ export const api = {
   },
   getGlobalMacroHistory: async (): Promise<GlobalMacroHistoryResponse> => {
     return getJson<GlobalMacroHistoryResponse>('/macro/global-history?years=5')
+  },
+  getHistoricalInsights: async (): Promise<HistoricalInsightsResponse> => {
+    return getJson<HistoricalInsightsResponse>('/regime/historical-insights')
+  },
+  getRiskLab: async (): Promise<RiskLabResponse> => {
+    return getJson<RiskLabResponse>('/regime/risk-lab')
   },
 }

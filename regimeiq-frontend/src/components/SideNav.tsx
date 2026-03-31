@@ -1,36 +1,36 @@
 type NavItem = {
   icon: string
   label: string
-  key: 'dashboard' | 'globalMacro' | 'riskMetrics' | 'portfolio' | 'archive'
+  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'archive'
 }
 
 const navItems: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
   { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
-  { icon: 'warning', label: 'Risk Metrics', key: 'riskMetrics' },
+  { icon: 'strategy', label: 'Playbook', key: 'playbook' },
+  { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },
   { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
   { icon: 'history', label: 'Archive', key: 'archive' },
 ]
 
 interface Props {
-  activeView: 'dashboard' | 'globalMacro'
-  onSelectView: (view: 'dashboard' | 'globalMacro') => void
+  activeView: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'
+  onSelectView: (view: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab') => void
 }
 
 export function SideNav({ activeView, onSelectView }: Props) {
   const handleClick = (key: NavItem['key']) => {
-    if (key === 'dashboard' || key === 'globalMacro') {
+    if (key === 'dashboard' || key === 'globalMacro' || key === 'playbook' || key === 'riskLab') {
       onSelectView(key)
       return
     }
-    const idMap: Record<'riskMetrics' | 'portfolio' | 'archive', string> = {
-      riskMetrics: 'risk-metrics',
+    const idMap: Record<'portfolio' | 'archive', string> = {
       portfolio: 'portfolio',
       archive: 'archive',
     }
     onSelectView('dashboard')
     window.setTimeout(() => {
-      const el = document.getElementById(idMap[key as 'riskMetrics' | 'portfolio' | 'archive'])
+      const el = document.getElementById(idMap[key as 'portfolio' | 'archive'])
       el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
   }
@@ -45,15 +45,20 @@ export function SideNav({ activeView, onSelectView }: Props) {
         {navItems.map((item) => {
           const isActive =
             (item.key === 'dashboard' && activeView === 'dashboard') ||
-            (item.key === 'globalMacro' && activeView === 'globalMacro')
+            (item.key === 'globalMacro' && activeView === 'globalMacro') ||
+            (item.key === 'playbook' && activeView === 'playbook') ||
+            (item.key === 'riskLab' && activeView === 'riskLab')
+          const spotlight = item.key === 'playbook' || item.key === 'riskLab'
           return (
             <button
               key={item.label}
               onClick={() => handleClick(item.key)}
-              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out ${
+              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out rounded ${
                 isActive
-                  ? 'bg-[#19191d] text-[#4edea3] border-r-2 border-[#4edea3]'
-                  : 'text-[#94a3b8] hover:bg-[#19191d] hover:text-[#e7e4ec]'
+                  ? 'bg-gradient-to-r from-[#1b1c22] to-[#262834] text-[#4edea3] border-r-2 border-[#4edea3] ring-1 ring-primary/40'
+                  : spotlight
+                    ? 'text-[#cbd5e1] border border-primary/20 hover:bg-[#19191d] hover:text-[#e7e4ec]'
+                    : 'text-[#94a3b8] hover:bg-[#19191d] hover:text-[#e7e4ec]'
               }`}
             >
               <span className="material-symbols-outlined text-lg">{item.icon}</span>

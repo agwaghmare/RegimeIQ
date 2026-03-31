@@ -37,6 +37,7 @@ const metricHelp: Record<string, string> = {
   'Fed Funds 3M Δ': 'What: 3-month change in policy rate. Market impact: no cuts/tight policy tends to support USD and pressure rate-sensitive assets.',
   'Real rate (10Y)': 'What: inflation-adjusted long-term interest rate. Market impact: higher real rates tighten financial conditions and weigh on growth assets.',
   'HY credit spread': 'What: yield spread of high-yield bonds vs Treasuries. Market impact: widening spreads signal rising default/risk aversion.',
+  'HY credit spread % change': 'What: percent change in HY spread over 3 months. Market impact: sharp increases indicate fast deterioration in credit sentiment.',
   'Spread 3M Δ': 'What: 3-month change in credit spreads. Market impact: fast widening often precedes broader risk-off market behavior.',
   '10Y 3M Δ': 'What: 3-month change in long-end yield proxy. Market impact: sharp rate moves can reprice equities, duration and FX quickly.',
   'DXY 3M %': 'What: 3-month change in US Dollar index. Market impact: stronger USD can tighten global liquidity and pressure EM/risk assets.',

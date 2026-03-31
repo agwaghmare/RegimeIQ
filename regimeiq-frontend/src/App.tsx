@@ -8,10 +8,12 @@ import { RegimeBreakdown } from './components/RegimeBreakdown'
 import { PortfolioAllocation } from './components/PortfolioAllocation'
 import { TerminalFeed } from './components/TerminalFeed'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
+import { RiskLabTab } from './components/RiskLabTab'
+import { PlaybookTab } from './components/PlaybookTab'
 
 export default function App() {
   const { data, loading, error, refetch, isLive, lastUpdatedAt } = useRegime()
-  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro'>('dashboard')
+  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'>('dashboard')
 
   if (loading) {
     return (
@@ -52,6 +54,15 @@ export default function App() {
           fedwatch={data.fedwatch}
           releaseCalendar={data.macro_release_calendar}
         />
+      ) : activeView === 'playbook' ? (
+        <PlaybookTab
+          regime={data.regime}
+          totalScore={data.total_score}
+          fedwatch={data.fedwatch}
+          globalMacro={data.global_macro}
+        />
+      ) : activeView === 'riskLab' ? (
+        <RiskLabTab />
       ) : (
       <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6 scroll-smooth">
         {/* Dashboard Grid Content (9 Cols) */}
