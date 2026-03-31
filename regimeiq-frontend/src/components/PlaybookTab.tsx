@@ -13,6 +13,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
   const hike = Math.round(fedwatch.next_3m.hike * 100)
   const dxy = globalMacro.dxy_3m_pct_change ?? 0
   const cpi = globalMacro.cpi_yoy ?? 0
+  const real = globalMacro.real_rate_10y ?? 0
 
   const bias =
     regime === 'Risk-Off' || regime === 'Crisis'
@@ -21,6 +22,15 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
         ? 'Balanced tilt'
         : 'Risk-on tilt'
 
+  const regimeLabel =
+    regime === 'Neutral' ? 'Neutral (Defensive Lean)' : regime
+  const macroPressure = Math.round((cpi + real + dxy * 10) * 10) / 10
+  const inferredDrivers = [
+    'Rising unemployment',
+    'Weak PMI',
+    'Stable inflation',
+  ]
+
   return (
     <section className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6">
       <div className="bg-gradient-to-r from-[#1b1c22] to-[#262834] rounded-xl p-5 border border-primary/30 shadow-[0_0_40px_rgba(78,222,163,0.12)]">
@@ -28,30 +38,45 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
         <div className="text-xs text-on-surface-variant">Actionable regime guidance and policy context.</div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-        <div className="bg-surface-container rounded-xl p-4 border border-outline-variant/20">
-          <div className="text-on-surface-variant uppercase">Current Regime</div>
-          <div className="text-2xl font-black">{regime}</div>
-          <div className="text-on-surface-variant mt-1">Score: {totalScore}/13</div>
+      <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 text-sm space-y-4">
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Current Regime</div>
+          <div className="text-xl font-black">{regimeLabel}</div>
+          <div className="text-on-surface-variant">Score: {totalScore}/13</div>
         </div>
-        <div className="bg-surface-container rounded-xl p-4 border border-outline-variant/20">
-          <div className="text-on-surface-variant uppercase">Policy Bias</div>
-          <div className="text-2xl font-black">{bias}</div>
-          <div className="text-on-surface-variant mt-1">FedWatch cut/hold/hike: {cut}/{hold}/{hike}%</div>
-        </div>
-        <div className="bg-surface-container rounded-xl p-4 border border-outline-variant/20">
-          <div className="text-on-surface-variant uppercase">Macro Pressure</div>
-          <div className="text-2xl font-black">{Math.round((cpi + dxy * 10) * 10) / 10}</div>
-          <div className="text-on-surface-variant mt-1">Derived from CPI + DXY trend</div>
-        </div>
-      </div>
 
-      <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 text-xs">
-        <div className="font-bold uppercase tracking-widest text-on-surface-variant mb-3">Suggested Actions</div>
-        <div className="space-y-2">
-          <div>- If DXY keeps rising and VIX stays elevated, stay underweight cyclicals.</div>
-          <div>- If Fed hold probability dominates, keep duration balanced and avoid excessive beta.</div>
-          <div>- If regime drops back to Neutral and momentum stabilizes, scale risk gradually.</div>
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Policy Bias</div>
+          <div className="font-semibold">{bias === 'Balanced tilt' ? 'Defensive within Neutral regime' : bias}</div>
+        </div>
+
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Policy Expectation</div>
+          <div className="font-semibold">Higher-for-longer (Fed hold-dominant: {cut}% cut / {hold}% hold / {hike}% hike)</div>
+        </div>
+
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Macro Pressure</div>
+          <div className="text-xl font-black">{macroPressure}</div>
+          <div className="text-on-surface-variant text-xs">Composite of inflation, real rates, and dollar strength</div>
+        </div>
+
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Key Drivers</div>
+          <div className="space-y-1 mt-1">
+            {inferredDrivers.map((d) => (
+              <div key={d}>- {d}</div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-on-surface-variant uppercase text-xs">Suggested Actions</div>
+          <div className="space-y-1 mt-1 text-xs">
+            <div>• Rising DXY + elevated VIX → Reduce exposure to cyclicals and global risk assets</div>
+            <div>• Hold-dominant policy → Maintain balanced duration, avoid excessive beta</div>
+            <div>• If regime improves toward Risk-On → Gradually increase equity exposure</div>
+          </div>
         </div>
       </div>
     </section>
