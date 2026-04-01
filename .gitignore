@@ -1,0 +1,26 @@
+# Virtual environments
+.venv/
+.venv-*/
+siddarth.venv/
+*.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment / secrets
+.env
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data cache (regenerated at runtime)
+backend/data/master_dataset.csv
+
+# Dead / empty data files
+backend/data/marketData/market_features.csv
