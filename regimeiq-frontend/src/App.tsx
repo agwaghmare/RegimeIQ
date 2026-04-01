@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useRegime } from './hooks/useRegime'
+import { api } from './lib/api'
 import { TopNav } from './components/TopNav'
 import { SideNav } from './components/SideNav'
 import { ScoreCards } from './components/ScoreCards'
@@ -10,10 +11,16 @@ import { TerminalFeed } from './components/TerminalFeed'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
 import { RiskLabTab } from './components/RiskLabTab'
 import { PlaybookTab } from './components/PlaybookTab'
+import { HistoricalTab } from './components/HistoricalTab'
+import { PortfolioTab } from './components/PortfolioTab'
 
 export default function App() {
-  const { data, loading, error, refetch, isLive, lastUpdatedAt } = useRegime()
-  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'>('dashboard')
+  const { data, loading, error, refetch, isLive } = useRegime()
+  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'historical' | 'portfolio'>('dashboard')
+
+  const handleExport = async () => {
+    await api.downloadExport()
+  }
 
   if (loading) {
     return (
@@ -45,8 +52,9 @@ export default function App() {
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
-      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} lastUpdatedAt={lastUpdatedAt} />
-      <SideNav activeView={activeView} onSelectView={setActiveView} />
+      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} />
+      <SideNav activeView={activeView} onSelectView={setActiveView} onExport={handleExport} />
+
       {activeView === 'globalMacro' ? (
         <GlobalMacroTab
           updatedAt={data.updated_at}
@@ -63,38 +71,42 @@ export default function App() {
         />
       ) : activeView === 'riskLab' ? (
         <RiskLabTab />
+      ) : activeView === 'historical' ? (
+        <HistoricalTab />
+      ) : activeView === 'portfolio' ? (
+        <PortfolioTab allocation={data.allocation} regime={data.regime} />
       ) : (
-      <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6 scroll-smooth">
-        {/* Dashboard Grid Content (9 Cols) */}
-        <div className="col-span-12 lg:col-span-9 space-y-6">
-          <ScoreCards scores={data.scores} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MetricsTable title="Growth Metrics" subtitle={`UPDATED: ${data.updated_at}`} rows={data.growth_metrics} />
-            <MetricsTable title="Inflation Metrics" subtitle={data.regime.toUpperCase()} rows={data.inflation_metrics} />
+        <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6 scroll-smooth">
+          {/* Dashboard Grid Content (9 Cols) */}
+          <div className="col-span-12 lg:col-span-9 space-y-6">
+            <ScoreCards scores={data.scores} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <MetricsTable title="Growth Metrics" subtitle={`UPDATED: ${data.updated_at}`} rows={data.growth_metrics} />
+              <MetricsTable title="Inflation Metrics" subtitle={data.regime.toUpperCase()} rows={data.inflation_metrics} />
+            </div>
+            <div id="risk-metrics" className="grid grid-cols-1 md:grid-cols-2 gap-6 scroll-mt-24">
+              <MetricsTable title="Fin. Conditions" subtitle="FINANCIAL" rows={data.financial_metrics} />
+              <MetricsTable title="Market Risk" subtitle="MARKET" rows={data.market_metrics} />
+            </div>
           </div>
-          <div id="risk-metrics" className="grid grid-cols-1 md:grid-cols-2 gap-6 scroll-mt-24">
-            <MetricsTable title="Fin. Conditions" subtitle="FINANCIAL" rows={data.financial_metrics} />
-            <MetricsTable title="Market Risk" subtitle="MARKET" rows={data.market_metrics} />
-          </div>
-        </div>
 
-        {/* Right Sidebar (3 Cols) */}
-        <aside className="col-span-12 lg:col-span-3 space-y-6">
-          <RegimeBreakdown
-            regime={data.regime}
-            probability={data.probability}
-            total_score={data.total_score}
-            max_score={data.max_score}
-            scores={data.scores}
-          />
-          <div id="portfolio" className="scroll-mt-24">
-            <PortfolioAllocation allocation={data.allocation} regime={data.regime} />
-          </div>
-          <div id="archive" className="scroll-mt-24">
-            <TerminalFeed />
-          </div>
-        </aside>
-      </main>
+          {/* Right Sidebar (3 Cols) */}
+          <aside className="col-span-12 lg:col-span-3 space-y-6">
+            <RegimeBreakdown
+              regime={data.regime}
+              probability={data.probability}
+              total_score={data.total_score}
+              max_score={data.max_score}
+              scores={data.scores}
+            />
+            <div id="portfolio" className="scroll-mt-24">
+              <PortfolioAllocation allocation={data.allocation} regime={data.regime} />
+            </div>
+            <div id="archive" className="scroll-mt-24">
+              <TerminalFeed />
+            </div>
+          </aside>
+        </main>
       )}
 
       {/* FAB */}

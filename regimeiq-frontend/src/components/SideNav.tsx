@@ -1,7 +1,9 @@
+import { useState } from 'react'
+
 type NavItem = {
   icon: string
   label: string
-  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'archive'
+  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical'
 }
 
 const navItems: NavItem[] = [
@@ -10,29 +12,29 @@ const navItems: NavItem[] = [
   { icon: 'strategy', label: 'Playbook', key: 'playbook' },
   { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },
   { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
-  { icon: 'history', label: 'Archive', key: 'archive' },
+  { icon: 'history', label: 'Historical', key: 'historical' },
 ]
 
 interface Props {
-  activeView: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'
-  onSelectView: (view: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab') => void
+  activeView: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'historical' | 'portfolio'
+  onSelectView: (view: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'historical' | 'portfolio') => void
+  onExport: () => Promise<void>
 }
 
-export function SideNav({ activeView, onSelectView }: Props) {
+export function SideNav({ activeView, onSelectView, onExport }: Props) {
+  const [exporting, setExporting] = useState(false)
+
   const handleClick = (key: NavItem['key']) => {
-    if (key === 'dashboard' || key === 'globalMacro' || key === 'playbook' || key === 'riskLab') {
-      onSelectView(key)
-      return
+    onSelectView(key)
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await onExport()
+    } finally {
+      setExporting(false)
     }
-    const idMap: Record<'portfolio' | 'archive', string> = {
-      portfolio: 'portfolio',
-      archive: 'archive',
-    }
-    onSelectView('dashboard')
-    window.setTimeout(() => {
-      const el = document.getElementById(idMap[key as 'portfolio' | 'archive'])
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 0)
   }
 
   return (
@@ -43,11 +45,7 @@ export function SideNav({ activeView, onSelectView }: Props) {
       </div>
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
-          const isActive =
-            (item.key === 'dashboard' && activeView === 'dashboard') ||
-            (item.key === 'globalMacro' && activeView === 'globalMacro') ||
-            (item.key === 'playbook' && activeView === 'playbook') ||
-            (item.key === 'riskLab' && activeView === 'riskLab')
+          const isActive = item.key === activeView
           const spotlight = item.key === 'playbook' || item.key === 'riskLab'
           return (
             <button
@@ -68,20 +66,14 @@ export function SideNav({ activeView, onSelectView }: Props) {
         })}
       </nav>
       <div className="px-6 pt-4 border-t border-outline-variant/10">
-        <button className="w-full py-2 bg-primary text-on-primary font-bold rounded hover:opacity-90 transition-all flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-sm">download</span>
-          <span>Export Report</span>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="w-full py-2 bg-primary text-on-primary font-bold rounded hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined text-sm">{exporting ? 'hourglass_empty' : 'download'}</span>
+          <span>{exporting ? 'Exporting…' : 'Export Report'}</span>
         </button>
-      </div>
-      <div className="px-6 py-4 space-y-3">
-        <div className="flex items-center gap-3 text-[#94a3b8] hover:text-[#e7e4ec] cursor-pointer">
-          <span className="material-symbols-outlined text-lg">help</span>
-          <span>Support</span>
-        </div>
-        <div className="flex items-center gap-3 text-[#94a3b8] hover:text-[#e7e4ec] cursor-pointer">
-          <span className="material-symbols-outlined text-lg">code</span>
-          <span>API</span>
-        </div>
       </div>
     </aside>
   )

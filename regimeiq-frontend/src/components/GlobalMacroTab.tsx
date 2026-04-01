@@ -120,11 +120,13 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
     }).join(' ')
   }
 
-  const windowed = (arr: Array<number | null> | undefined, total: number): Array<number | null> => {
+  const RANGE_MONTHS: Record<string, number | null> = { '1Y': 12, '3Y': 36, '5Y': 60, 'MAX': null }
+
+  const windowed = (arr: Array<number | null> | undefined): Array<number | null> => {
     if (!arr) return []
-    if (range === 'MAX' || range === '5Y') return arr
-    const take = range === '3Y' ? Math.floor(total * 0.6) : Math.floor(total * 0.2)
-    return arr.slice(Math.max(0, arr.length - Math.max(take, 8)))
+    const months = RANGE_MONTHS[range]
+    if (months === null) return arr
+    return arr.slice(Math.max(0, arr.length - months))
   }
 
   const formatAxisDate = (d: string | undefined): string => {
@@ -231,13 +233,13 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
 
       {tab === 'charts' && (
       <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">5Y Yield vs Price</h3>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Yield vs Price (Historical)</h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {historyCharts.map((chart) => {
             const s = history?.series?.[chart.key]
             const datesAll = history?.dates ?? []
-            const y = windowed(s?.yield, datesAll.length)
-            const p = windowed(s?.price, datesAll.length)
+            const y = windowed(s?.yield)
+            const p = windowed(s?.price)
             const dTake = y.length > 0 ? datesAll.slice(datesAll.length - y.length) : datesAll
             const yieldPath = toPath(y, 120, 420)
             const pricePath = toPath(p, 120, 420)
@@ -249,7 +251,7 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
               <div key={chart.key} className="bg-surface-container-low rounded-lg p-3 border border-outline-variant/10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs font-semibold">{chart.label}</div>
-                  <div className="text-[10px] text-on-surface-variant">Past 5 years</div>
+                  <div className="text-[10px] text-on-surface-variant">{range === 'MAX' ? 'All history' : `Past ${range}`}</div>
                 </div>
                 <svg viewBox="0 0 420 120" className="w-full h-32 bg-surface/30 rounded">
                   <path d={yieldPath} fill="none" stroke="currentColor" className="text-primary" strokeWidth="2.5" />
