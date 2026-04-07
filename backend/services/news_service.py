@@ -1,12 +1,12 @@
 import httpx
 from datetime import datetime, timedelta
-from typing import List
+from typing import Optional
 import os
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "your-key-here")  # Get free at newsapi.org
 NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
 
-async def fetch_macro_news(days_back: int = 1) -> dict:
+async def fetch_macro_news(days_back: int = 1, topics: Optional[list[str]] = None) -> dict:
     """Fetch recent macro/financial news + score for black swan potential."""
     async with httpx.AsyncClient() as client:
         # Black swan keywords (tail events, crashes, etc.)
@@ -14,6 +14,10 @@ async def fetch_macro_news(days_back: int = 1) -> dict:
         
         # Macro normal news
         macro_keywords = "fed OR inflation OR recession OR unemployment OR yield curve OR gdp OR cpi OR pmi OR gdp"
+        if topics:
+            topic_clause = " OR ".join([t.strip() for t in topics if t and t.strip()])
+            if topic_clause:
+                macro_keywords = f"({macro_keywords}) OR ({topic_clause})"
         
         # Fetch black swan first (higher priority)
         black_swan_resp = await client.get(

@@ -15,11 +15,31 @@ Key design decisions:
 import os
 import pandas as pd
 import numpy as np
+from pandas.tseries.offsets import BDay
+
+from services.macro_service import fetch_macro_data
+from services.market_service import fetch_market_data
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MACRO_CSV = os.path.join(BASE_DIR, "data", "macroData", "macro_data.csv")
 MARKET_CSV = os.path.join(BASE_DIR, "data", "marketData", "market_raw.csv")
 MASTER_CSV = os.path.join(BASE_DIR, "data", "master_dataset.csv")
+
+
+def _expected_latest_market_day() -> pd.Timestamp:
+    """
+    Return the most recent business day that should reasonably exist in market data.
+    Using previous business day avoids false stale alarms on intraday requests.
+    """
+    return (pd.Timestamp.today().normalize() - BDay(1)).normalize()
+
+
+def _is_dataset_stale(df: pd.DataFrame) -> bool:
+    """Detect whether cached master data is stale vs expected market freshness."""
+    if df.empty:
+        return True
+    last_dt = pd.Timestamp(df.index.max()).normalize()
+    return last_dt < _expected_latest_market_day()
 
 
 # ── loaders ──────────────────────────────────────────────────────────
@@ -135,8 +155,26 @@ def get_master_dataset() -> pd.DataFrame:
             invalid = (pmi < 10) | (pmi > 90)
             if invalid.any():
                 df.loc[invalid, "pmi_ism"] = np.nan
+        if not _is_dataset_stale(df):
+            return df
 
-        return df
+        print(
+            f"[merge] Cached dataset stale (last={pd.Timestamp(df.index.max()).date()}). "
+            "Refreshing macro + market sources..."
+        )
+        try:
+            fetch_macro_data()
+            fetch_market_data()
+            refreshed = build_master_dataset(save=True)
+            print(
+                f"[merge] Refresh complete. New last date: "
+                f"{pd.Timestamp(refreshed.index.max()).date()}"
+            )
+            return refreshed
+        except Exception as e:
+            # Graceful fallback so API remains available even if data vendors fail.
+            print(f"[merge] Refresh failed, serving stale cache: {e}")
+            return df
     return build_master_dataset()
 
 

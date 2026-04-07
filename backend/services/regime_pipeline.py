@@ -52,7 +52,15 @@ def _get_historical_df() -> pd.DataFrame:
     now = time.time()
     if (_cache["historical_df"] is not None
             and (now - _cache["timestamp"]) < _CACHE_TTL):
-        return _cache["historical_df"]
+        # Recompute early if master dataset advanced beyond cached history.
+        try:
+            master_latest = pd.Timestamp(get_master_dataset().index.max()).normalize()
+            cache_latest = pd.Timestamp(_cache["historical_df"].index.max()).normalize()
+            if cache_latest >= master_latest:
+                return _cache["historical_df"]
+        except Exception:
+            # Fall through to recompute if any date inspection fails.
+            pass
 
     master = get_master_dataset()
     hist_sigs = compute_signals_historical(master)
