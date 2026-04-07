@@ -10,10 +10,11 @@ import { TerminalFeed } from './components/TerminalFeed'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
 import { RiskLabTab } from './components/RiskLabTab'
 import { PlaybookTab } from './components/PlaybookTab'
+import { SettingsTab } from './components/SettingsTab'
 
 export default function App() {
   const { data, loading, error, refetch, isLive, lastUpdatedAt } = useRegime()
-  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'>('dashboard')
+  const [activeView, setActiveView] = useState<'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings'>('dashboard')
 
   if (loading) {
     return (
@@ -63,6 +64,8 @@ export default function App() {
         />
       ) : activeView === 'riskLab' ? (
         <RiskLabTab />
+      ) : activeView === 'settings' ? (
+        <SettingsTab />
       ) : (
       <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen grid grid-cols-12 gap-6 scroll-smooth">
         {/* Dashboard Grid Content (9 Cols) */}

@@ -65,3 +65,48 @@ export interface RegimeData {
   global_macro: GlobalMacroSnapshot
   updated_at: string
 }
+
+export type RiskTolerance = 'conservative' | 'moderate' | 'aggressive'
+
+export interface NewsArticle {
+  title: string
+  source: string
+  url: string
+  published_at: string
+  description?: string | null
+  black_swan_score: number
+  relevance: string
+}
+
+export interface NewsPayload {
+  articles: NewsArticle[]
+  summary: string
+  as_of: string
+}
+
+export interface RankedAsset {
+  ticker: string
+  sharpe: number
+  ann_return: number
+  ann_vol: number
+}
+
+export interface RebalancePlan {
+  regime: string
+  risk_tolerance: string
+  bucket_weights: {
+    equities: number
+    bonds: number
+    commodities: number
+  }
+  buy_recommendations: {
+    stocks: RankedAsset[]
+    bonds: RankedAsset[]
+    commodities: RankedAsset[]
+  }
+  model_portfolio: Array<{
+    ticker: string
+    sharpe: number
+    target_weight: number
+  }>
+}

@@ -34,7 +34,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
   return (
     <section className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6">
       <div className="bg-gradient-to-r from-[#1b1c22] to-[#262834] rounded-xl p-5 border border-primary/30 shadow-[0_0_40px_rgba(78,222,163,0.12)]">
-        <h2 className="text-sm font-black uppercase tracking-widest text-primary mb-2">Playbook</h2>
+        <h2 className="text-sm font-black uppercase tracking-widest text-primary mb-2">Strategy Desk</h2>
         <div className="text-xs text-on-surface-variant">Actionable regime guidance and policy context.</div>
       </div>
 

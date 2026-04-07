@@ -1,26 +1,27 @@
 type NavItem = {
   icon: string
   label: string
-  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'archive'
+  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'portfolio' | 'archive'
 }
 
 const navItems: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
   { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
-  { icon: 'strategy', label: 'Playbook', key: 'playbook' },
+  { icon: 'strategy', label: 'Strategy Desk', key: 'playbook' },
   { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },
+  { icon: 'tune', label: 'Settings', key: 'settings' },
   { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
   { icon: 'history', label: 'Archive', key: 'archive' },
 ]
 
 interface Props {
-  activeView: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab'
-  onSelectView: (view: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab') => void
+  activeView: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings'
+  onSelectView: (view: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings') => void
 }
 
 export function SideNav({ activeView, onSelectView }: Props) {
   const handleClick = (key: NavItem['key']) => {
-    if (key === 'dashboard' || key === 'globalMacro' || key === 'playbook' || key === 'riskLab') {
+    if (key === 'dashboard' || key === 'globalMacro' || key === 'playbook' || key === 'riskLab' || key === 'settings') {
       onSelectView(key)
       return
     }
@@ -47,7 +48,8 @@ export function SideNav({ activeView, onSelectView }: Props) {
             (item.key === 'dashboard' && activeView === 'dashboard') ||
             (item.key === 'globalMacro' && activeView === 'globalMacro') ||
             (item.key === 'playbook' && activeView === 'playbook') ||
-            (item.key === 'riskLab' && activeView === 'riskLab')
+            (item.key === 'riskLab' && activeView === 'riskLab') ||
+            (item.key === 'settings' && activeView === 'settings')
           const spotlight = item.key === 'playbook' || item.key === 'riskLab'
           return (
             <button
