@@ -179,7 +179,7 @@ export function HistoricalTab() {
                 key={`${t.date}-${i}`}
                 className={`${regimeColor[t.regime] ?? 'bg-outline'} h-full`}
                 style={{ width: `${100 / Math.max(timeline.length, 1)}%` }}
-                title={`${t.date} — ${t.regime} (${t.total_score}/13)`}
+                title={`${t.date} — ${t.regime} (${typeof t.total_score === 'number' ? t.total_score.toFixed(1) : t.total_score}/10)`}
               />
             ))}
           </div>
@@ -195,7 +195,7 @@ export function HistoricalTab() {
                 <div key={e.event} className="flex justify-between border-b border-outline-variant/10 pb-2">
                   <span>{e.event}</span>
                   <span className="text-on-surface-variant">
-                    {e.detected_date} · {e.regime} · {e.total_score}/13
+                    {e.detected_date} · {e.regime} · {typeof e.total_score === 'number' ? e.total_score.toFixed(1) : e.total_score}/10
                   </span>
                 </div>
               ))}

@@ -9,10 +9,10 @@ interface Props {
 }
 
 const RANGES = [
-  { label: 'Risk-On', range: '0–3' },
-  { label: 'Neutral', range: '4–6' },
-  { label: 'Risk-Off', range: '7–9' },
-  { label: 'Crisis', range: '10–13' },
+  { label: 'Risk-On', range: '0–2.5' },
+  { label: 'Neutral', range: '2.5–5' },
+  { label: 'Risk-Off', range: '5–7.5' },
+  { label: 'Crisis', range: '7.5–10' },
 ]
 
 export function RegimeBreakdown({ regime, probability, total_score, max_score, scores }: Props) {

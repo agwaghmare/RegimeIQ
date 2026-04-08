@@ -3,11 +3,11 @@ regime_service.py
 ─────────────────
 Maps total scores → regime labels + probability.
 
-Regime bands:
-  0–3   Risk-On    (green)
-  4–6   Neutral    (yellow)
-  7–9   Risk-Off   (orange)
-  10–13 Crisis     (red)
+Regime bands (0-10 continuous scale):
+  0.0–2.5   Risk-On    (green)
+  2.5–5.0   Neutral    (yellow)
+  5.0–7.5   Risk-Off   (orange)
+  7.5–10.0  Crisis     (red)
 
 Provides point-in-time classification and full historical regime series.
 """
@@ -25,11 +25,11 @@ from services.scoring_engine import (
 # ─── regime definitions ──────────────────────────────────────────────
 #  (lo, hi, label, color_hex, risk_level)
 
-REGIME_BANDS: list[tuple[int, int, str, str, int]] = [
-    (0,  3,  "Risk-On",  "#22c55e", 1),
-    (4,  6,  "Neutral",  "#eab308", 2),
-    (7,  9,  "Risk-Off", "#f97316", 3),
-    (10, 13, "Crisis",   "#ef4444", 4),
+REGIME_BANDS: list[tuple[float, float, str, str, int]] = [
+    (0.0,  2.5,  "Risk-On",  "#22c55e", 1),
+    (2.5,  5.0,  "Neutral",  "#eab308", 2),
+    (5.0,  7.5,  "Risk-Off", "#f97316", 3),
+    (7.5, 10.0,  "Crisis",   "#ef4444", 4),
 ]
 
 
@@ -48,21 +48,28 @@ def classify_regime(scores: dict) -> dict:
     -------
     dict with regime label, color, probability, and full breakdown.
     """
-    total = int(scores.get("total_score", 0))
+    total = float(scores.get("total_score", 0))
 
     # Clamp to valid range
-    total = max(0, min(total, TOTAL_MAX))
+    total = max(0.0, min(total, float(TOTAL_MAX)))
 
     regime = "Neutral"
     color = "#eab308"
     risk_level = 2
 
     for lo, hi, label, hex_color, rl in REGIME_BANDS:
-        if lo <= total <= hi:
-            regime = label
-            color = hex_color
-            risk_level = rl
-            break
+        if rl == 4:  # Crisis: inclusive upper bound
+            if lo <= total <= hi:
+                regime = label
+                color = hex_color
+                risk_level = rl
+                break
+        else:
+            if lo <= total < hi:
+                regime = label
+                color = hex_color
+                risk_level = rl
+                break
 
     probability = round(total / TOTAL_MAX, 4)
 
@@ -71,7 +78,7 @@ def classify_regime(scores: dict) -> dict:
         "regime_color": color,
         "risk_level": risk_level,
         "probability": probability,
-        "total_score": total,
+        "total_score": round(total, 2),
         "breakdown": {
             "growth":    {"score": int(scores.get("growth_score", 0)),    "max": GROWTH_MAX},
             "inflation": {"score": int(scores.get("inflation_score", 0)), "max": INFLATION_MAX},
@@ -100,14 +107,14 @@ def classify_regime_historical(scores_df: pd.DataFrame) -> pd.DataFrame:
     df = scores_df.copy()
 
     # Clamp total score
-    df["total_score"] = df["total_score"].clip(0, TOTAL_MAX)
+    df["total_score"] = df["total_score"].clip(0.0, float(TOTAL_MAX))
 
-    # Map total_score → regime using np.select
+    # Map total_score → regime using np.select (0-10 float scale)
     conditions = [
-        df["total_score"] <= 3,
-        df["total_score"] <= 6,
-        df["total_score"] <= 9,
-        df["total_score"] <= 13,
+        df["total_score"] < 2.5,
+        df["total_score"] < 5.0,
+        df["total_score"] < 7.5,
+        df["total_score"] <= 10.0,
     ]
 
     regime_labels = ["Risk-On", "Neutral", "Risk-Off", "Crisis"]

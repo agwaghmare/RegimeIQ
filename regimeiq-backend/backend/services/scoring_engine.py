@@ -33,7 +33,8 @@ FINANCIAL_MAX = len(FINANCIAL_FLAGS)  # 3
 MARKET_FLAGS = ["momentum_negative", "drawdown_severe", "vix_above_25", "below_200ma"]
 MARKET_MAX = len(MARKET_FLAGS)  # 4
 
-TOTAL_MAX = GROWTH_MAX + INFLATION_MAX + FINANCIAL_MAX + MARKET_MAX  # 13
+TOTAL_MAX_RAW = GROWTH_MAX + INFLATION_MAX + FINANCIAL_MAX + MARKET_MAX  # 13
+TOTAL_MAX = 10  # new public max (LightGBM-predicted continuous score)
 
 
 # ─── helpers ──────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ def compute_scores(signals: dict) -> dict:
     Returns
     -------
     dict with growth_score, inflation_score, financial_score, market_score,
-    total_score.
+    raw_total_score (integer sum 0-13), total_score (model-predicted float 0-10).
     """
     growth = signals.get("growth", {})
     inflation = signals.get("inflation", {})
@@ -71,14 +72,19 @@ def compute_scores(signals: dict) -> dict:
     financial_score = sum(_flag_to_int(financial.get(f)) for f in FINANCIAL_FLAGS)
     market_score = sum(_flag_to_int(market.get(f)) for f in MARKET_FLAGS)
 
-    total_score = growth_score + inflation_score + financial_score + market_score
+    raw_total_score = growth_score + inflation_score + financial_score + market_score
+
+    # Model prediction for total score (0-10 continuous)
+    from services.model_service import predict_score_single
+    total_score = predict_score_single(signals, raw_total_score)
 
     return {
         "growth_score": growth_score,
         "inflation_score": inflation_score,
         "financial_score": financial_score,
         "market_score": market_score,
-        "total_score": total_score,
+        "raw_total_score": raw_total_score,
+        "total_score": round(total_score, 2),
     }
 
 
@@ -95,7 +101,7 @@ def compute_scores_historical(signals_df: pd.DataFrame) -> pd.DataFrame:
     Returns
     -------
     DataFrame with columns: growth_score, inflation_score, financial_score,
-    market_score, total_score (same index as input).
+    market_score, raw_total_score (int 0-13), total_score (float 0-10).
     """
     out = pd.DataFrame(index=signals_df.index)
 
@@ -119,10 +125,24 @@ def compute_scores_historical(signals_df: pd.DataFrame) -> pd.DataFrame:
         signals_df[f].fillna(False).astype(int) for f in MARKET_FLAGS
     )
 
-    out["total_score"] = (
+    out["raw_total_score"] = (
         out["growth_score"] + out["inflation_score"]
         + out["financial_score"] + out["market_score"]
     )
+
+    # Rescale raw sum to 0-10 via sigmoid (compresses moderate, amplifies extreme)
+    from services.model_service import _sigmoid_rescale
+    rescaled = _sigmoid_rescale(out["raw_total_score"])
+    out["total_score"] = pd.Series(rescaled, index=out.index).clip(0.0, 10.0).round(2)
+
+    # Use model predictions for ALL data — the model learns interaction effects
+    # (multi-category stress, VIX×drawdown, etc.) that the additive system misses,
+    # pushing genuine crises higher while keeping moderate periods moderate.
+    from services.model_service import predict_scores
+    model_preds = predict_scores(signals_df)
+    valid = model_preds.notna()
+    if valid.any():
+        out.loc[valid, "total_score"] = model_preds[valid].round(2)
 
     return out
 
@@ -157,13 +177,14 @@ if __name__ == "__main__":
             )[0])
             row = hist_scores.iloc[idx]
             actual_date = pd.Timestamp(hist_scores.index[idx]).date()  # type: ignore[union-attr]
-            total = int(row["total_score"])
+            total = float(row["total_score"])
+            raw = int(row["raw_total_score"])
             g = int(row["growth_score"])
             i = int(row["inflation_score"])
             f = int(row["financial_score"])
             m = int(row["market_score"])
             print(f"  {actual_date}  →  G={g} I={i} F={f} M={m}  "
-                  f"Total={total}/13")
+                  f"Raw={raw}/13  Score={total:.2f}/10")
         except Exception as e:
             print(f"  {date_str}: {e}")
 
@@ -177,18 +198,18 @@ if __name__ == "__main__":
         "financial": {f: False for f in FINANCIAL_FLAGS},
         "market":    {f: False for f in MARKET_FLAGS},
     }
-    assert compute_scores(all_false)["total_score"] == 0, "FAIL: all-false"
+    assert compute_scores(all_false)["raw_total_score"] == 0, "FAIL: all-false"
     print("  ✓ All-false → 0")
 
-    # All-true → 13
+    # All-true → raw_total_score 13
     all_true = {
         "growth":    {f: True for f in GROWTH_FLAGS},
         "inflation": {f: True for f in INFLATION_FLAGS},
         "financial": {f: True for f in FINANCIAL_FLAGS},
         "market":    {f: True for f in MARKET_FLAGS},
     }
-    assert compute_scores(all_true)["total_score"] == 13, "FAIL: all-true"
-    print("  ✓ All-true → 13")
+    assert compute_scores(all_true)["raw_total_score"] == 13, "FAIL: all-true"
+    print("  ✓ All-true → raw_total_score=13")
 
     # NaN PMI → growth max is 2
     nan_pmi = {
@@ -199,12 +220,12 @@ if __name__ == "__main__":
     }
     result = compute_scores(nan_pmi)
     assert result["growth_score"] == 2, f"FAIL: NaN PMI → growth={result['growth_score']}"
-    assert result["total_score"] == 2, f"FAIL: NaN PMI → total={result['total_score']}"
-    print("  ✓ NaN PMI → growth=2, total=2")
+    assert result["raw_total_score"] == 2, f"FAIL: NaN PMI → raw_total={result['raw_total_score']}"
+    print("  ✓ NaN PMI → growth=2, raw_total=2")
 
     # Empty input → 0
     empty = {}
-    assert compute_scores(empty)["total_score"] == 0, "FAIL: empty"
+    assert compute_scores(empty)["raw_total_score"] == 0, "FAIL: empty"
     print("  ✓ Empty input → 0")
 
     # Growth-only stress
@@ -216,7 +237,7 @@ if __name__ == "__main__":
     }
     result = compute_scores(growth_only)
     assert result["growth_score"] == 3, "FAIL: growth-only"
-    assert result["total_score"] == 3, "FAIL: growth-only total"
-    print("  ✓ Growth-only stress → 3/3, total=3")
+    assert result["raw_total_score"] == 3, "FAIL: growth-only raw_total"
+    print("  ✓ Growth-only stress → 3/3, raw_total=3")
 
     print("\n  All unit tests passed.")

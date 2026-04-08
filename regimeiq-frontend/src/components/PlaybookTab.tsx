@@ -42,7 +42,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
         <div>
           <div className="text-on-surface-variant uppercase text-xs">Current Regime</div>
           <div className="text-xl font-black">{regimeLabel}</div>
-          <div className="text-on-surface-variant">Score: {totalScore}/13</div>
+          <div className="text-on-surface-variant">Score: {totalScore.toFixed(1)}/10</div>
         </div>
 
         <div>
