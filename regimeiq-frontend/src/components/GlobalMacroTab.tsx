@@ -146,13 +146,6 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <button onClick={() => setTab('charts')} className={`px-3 py-1 rounded text-xs ${tab === 'charts' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>Market Charts</button>
           <button onClick={() => setTab('calendar')} className={`px-3 py-1 rounded text-xs ${tab === 'calendar' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>Release Calendar</button>
-          <div className="w-px h-5 bg-outline-variant/30 mx-1"></div>
-          {(['1Y', '3Y', '5Y', 'MAX'] as const).map((r) => (
-            <button key={r} onClick={() => setRange(r)} className={`px-2 py-1 rounded text-[11px] ${range === r ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>{r}</button>
-          ))}
-          <button onClick={() => setScale(scale === 'linear' ? 'log' : 'linear')} className="px-2 py-1 rounded text-[11px] bg-surface-container-high text-on-surface-variant">
-            {scale === 'linear' ? 'Linear' : 'Log'} scale
-          </button>
         </div>
         <div className="mb-4 bg-surface-container-low rounded-lg p-3">
           <div className="text-xs text-on-surface-variant mb-2">FedWatch-style next 3M probabilities</div>
@@ -233,7 +226,18 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
 
       {tab === 'charts' && (
       <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Yield vs Price (Historical)</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Yield vs Price (Historical)</h3>
+          <div className="flex items-center gap-2">
+            {(['1Y', '3Y', '5Y', 'MAX'] as const).map((r) => (
+              <button key={r} onClick={() => setRange(r)} className={`px-2 py-1 rounded text-[11px] ${range === r ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>{r}</button>
+            ))}
+            <div className="w-px h-4 bg-outline-variant/30 mx-1"></div>
+            <button onClick={() => setScale(scale === 'linear' ? 'log' : 'linear')} className="px-2 py-1 rounded text-[11px] bg-surface-container-high text-on-surface-variant">
+              {scale === 'linear' ? 'Linear' : 'Log'} scale
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {historyCharts.map((chart) => {
             const s = history?.series?.[chart.key]
