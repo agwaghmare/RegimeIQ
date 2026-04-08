@@ -57,6 +57,8 @@ def _load_market() -> pd.DataFrame:
     df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=True)
     df.index.name = "Date"
     df = df.sort_index()
+    # yfinance concat / CSV round-trips can introduce duplicate column names; keep first.
+    df = df.loc[:, ~df.columns.duplicated(keep="first")]
     return df
 
 
@@ -117,7 +119,9 @@ def build_master_dataset(save: bool = True) -> pd.DataFrame:
     macro_daily = macro.reindex(market.index, method="ffill")
 
     # Step 4: inner join (only dates where both exist)
-    master = market.join(macro_daily, how="inner")
+    # rsuffix avoids silent duplicate names (e.g. rare macro/market key clashes).
+    master = market.join(macro_daily, how="inner", rsuffix="_macro")
+    master = master.loc[:, ~master.columns.duplicated(keep="first")]
 
     # Step 5: drop rows where critical columns are NaN
     critical_cols = ["sp500", "vix", "unemployment", "cpi_yoy",
@@ -147,6 +151,7 @@ def get_master_dataset() -> pd.DataFrame:
     if os.path.exists(MASTER_CSV):
         df = pd.read_csv(MASTER_CSV, index_col=0, parse_dates=True)
         df.index.name = "Date"
+        df = df.loc[:, ~df.columns.duplicated(keep="first")]
 
         # Hygiene guard: historical bad caches may store non-PMI values
         # (e.g. ~12,000 manufacturing employment) under pmi_ism.
@@ -155,6 +160,40 @@ def get_master_dataset() -> pd.DataFrame:
             invalid = (pmi < 10) | (pmi > 90)
             if invalid.any():
                 df.loc[invalid, "pmi_ism"] = np.nan
+
+        # Corrupt cache: misaligned columns (e.g. VIX/VVIX swapped, SPX ~100).
+        try:
+            last_sp = float(pd.to_numeric(df["sp500"], errors="coerce").iloc[-1])
+            last_vix = float(pd.to_numeric(df["vix"], errors="coerce").iloc[-1])
+            last_vvix = (
+                float(pd.to_numeric(df["vvix"], errors="coerce").iloc[-1])
+                if "vvix" in df.columns
+                else np.nan
+            )
+            vix_vvix_swapped = (
+                last_vix > 85
+                and not np.isnan(last_vvix)
+                and last_vvix < 65
+                and last_vvix > 5
+            )
+            if last_sp < 500 or vix_vvix_swapped:
+                print(
+                    "[merge] Master cache failed sanity check (e.g. bad VIX/VVIX or SPX). "
+                    "Rebuilding from on-disk market/macro CSVs..."
+                )
+                try:
+                    return build_master_dataset(save=True)
+                except Exception as e1:
+                    print(f"[merge] Rebuild from CSV failed: {e1}. Trying full data refresh...")
+                    try:
+                        fetch_macro_data()
+                        fetch_market_data()
+                        return build_master_dataset(save=True)
+                    except Exception as e2:
+                        print(f"[merge] Full refresh failed: {e2}")
+        except Exception:
+            pass
+
         if not _is_dataset_stale(df):
             return df
 

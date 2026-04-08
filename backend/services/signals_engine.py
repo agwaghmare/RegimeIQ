@@ -23,6 +23,20 @@ def _safe_float(value):
     return float(value)
 
 
+def _vix_series(df: pd.DataFrame) -> pd.Series:
+    """
+    CBOE VIX is usually ~9–80. Values ~90–150 in the 'vix' column are often VVIX
+    mis-mapped (VVIX is typically 80–150; VIX is typically 10–50). Repair obvious swaps.
+    """
+    v = pd.to_numeric(df["vix"], errors="coerce")
+    if "vvix" not in df.columns:
+        return v
+    vv = pd.to_numeric(df["vvix"], errors="coerce")
+    # Typical mis-label: vix holds VVIX (~100+), vvix holds VIX (~15–40)
+    swap = (v > 85) & (vv < 70) & (vv > 5)
+    return v.where(~swap, vv)
+
+
 def _resolve_pmi_series(df: pd.DataFrame) -> pd.Series:
     """
     Return a PMI-like series on the expected 0-100 diffusion scale.
@@ -114,12 +128,13 @@ def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
     daily_ret = df["sp500"].pct_change(1)
     out["sp500_30d_vol"] = daily_ret.rolling(30).std() * np.sqrt(252)
 
-    out["vix_level"] = df["vix"]
-    out["vix_1m_change"] = df["vix"].diff(21)
-    out["vix_above_25"] = df["vix"] > 25.0
+    vix_clean = _vix_series(df)
+    out["vix_level"] = vix_clean
+    out["vix_1m_change"] = vix_clean.diff(21)
+    out["vix_above_25"] = vix_clean > 25.0
 
     out["vix_regime"] = pd.cut(
-        df["vix"],
+        vix_clean,
         bins=[-np.inf, 20, 30, np.inf],
         labels=["low", "elevated", "high"],
     )
