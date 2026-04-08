@@ -166,3 +166,22 @@ def compute_market_features(start="2005-01-01"):
     print(f"[market] features CSV saved → {csv_path} — {len(df)} rows")
 
     return df
+
+
+# ── in-memory cache (one fetch per server run) ──────────────────────
+
+_market_cache: dict = {"raw": None, "features": None}
+
+
+def get_market_cached() -> pd.DataFrame:
+    """Return cached raw market DataFrame; fetch from Yahoo on first call."""
+    if _market_cache["raw"] is None:
+        _market_cache["raw"] = fetch_market_data()
+    return _market_cache["raw"]
+
+
+def get_market_features_cached() -> pd.DataFrame:
+    """Return cached market features DataFrame; compute on first call."""
+    if _market_cache["features"] is None:
+        _market_cache["features"] = compute_market_features()
+    return _market_cache["features"]

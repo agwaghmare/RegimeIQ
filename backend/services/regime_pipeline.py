@@ -47,6 +47,12 @@ def _safe_num(value) -> float | None:
     return float(value)
 
 
+def clear_cache():
+    """Reset the in-memory historical cache."""
+    _cache["historical_df"] = None
+    _cache["timestamp"] = 0.0
+
+
 def _get_historical_df() -> pd.DataFrame:
     """Return cached historical regime DataFrame, recomputing if stale."""
     now = time.time()
