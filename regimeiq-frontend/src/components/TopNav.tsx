@@ -2,27 +2,26 @@ interface Props {
   regime: string
   probability: number
   isLive?: boolean
-  lastUpdatedAt?: number | null
+  dataDate?: string | null
 }
 
-function formatLastSeen(timestamp: number | null | undefined): string {
-  if (!timestamp) return 'Waiting for first sync'
-  const elapsedMs = Date.now() - timestamp
-  if (elapsedMs < 60000) return 'Updated just now'
-  const minutes = Math.floor(elapsedMs / 60000)
-  return `Updated ${minutes}m ago`
+function formatDataDate(dataDate: string | null | undefined): string {
+  if (!dataDate) return 'Waiting for data'
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (dataDate === today) return 'Updated today'
+  if (dataDate === yesterday) return 'Updated yesterday'
+  return `Data as of ${dataDate}`
 }
 
-export function TopNav({ regime, probability, isLive = false, lastUpdatedAt = null }: Props) {
+export function TopNav({ regime, probability, isLive = false, dataDate = null }: Props) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0e0e10] flex justify-between items-center w-full px-6 py-3 max-w-[1920px] mx-auto font-['Inter'] tabular-nums text-sm antialiased">
       <div className="flex items-center gap-8">
         <span className="text-lg font-bold tracking-tighter text-[#e7e4ec]">RegimeIQ</span>
         <nav className="hidden md:flex gap-6">
           <a className="text-[#4edea3] border-b-2 border-[#4edea3] pb-1 font-semibold" href="#">Current</a>
-          <a className="text-[#94a3b8] hover:text-[#e7e4ec] transition-colors" href="#">Historical</a>
           <a className="text-[#94a3b8] hover:text-[#e7e4ec] transition-colors" href="#">Forecast</a>
-          <a className="text-[#94a3b8] hover:text-[#e7e4ec] transition-colors" href="#">Settings</a>
         </nav>
       </div>
       <div className="flex items-center gap-4">
@@ -38,7 +37,7 @@ export function TopNav({ regime, probability, isLive = false, lastUpdatedAt = nu
           <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-primary' : 'bg-error'}`}></span>
           <span>{isLive ? 'Live' : 'Paused'}</span>
           <span className="opacity-80">|</span>
-          <span>{formatLastSeen(lastUpdatedAt)}</span>
+          <span>{formatDataDate(dataDate)}</span>
         </div>
         <div className="h-8 w-[1px] bg-outline-variant opacity-20 mx-2"></div>
         <div className="flex items-center gap-3 text-[#94a3b8]">

@@ -267,7 +267,7 @@ export const api = {
     return mapApiToRegimeData(raw)
   },
   getGlobalMacroHistory: async (): Promise<GlobalMacroHistoryResponse> => {
-    return getJson<GlobalMacroHistoryResponse>('/macro/global-history?years=5')
+    return getJson<GlobalMacroHistoryResponse>('/macro/global-history')
   },
   getHistoricalInsights: async (): Promise<HistoricalInsightsResponse> => {
     return getJson<HistoricalInsightsResponse>('/regime/historical-insights')
@@ -280,6 +280,26 @@ export const api = {
     return getJson<NewsPayload>(`/news/${q}`)
   },
   getRebalancePlan: async (riskTolerance: RiskTolerance): Promise<RebalancePlan> => {
-    return getJson<RebalancePlan>(`/allocation/rebalance-plan?risk_tolerance=${encodeURIComponent(riskTolerance)}`)
+    return getJson<RebalancePlan>(
+      `/allocation/rebalance-plan?risk_tolerance=${encodeURIComponent(riskTolerance)}`
+    )
+  },
+  getSnapshot: async (date: string): Promise<RegimeData> => {
+    const raw = await getJson<RegimeApiResponse>(`/regime/snapshot?date=${encodeURIComponent(date)}`)
+    return mapApiToRegimeData(raw)
+  },
+  downloadExport: async (): Promise<void> => {
+    const res = await fetch(url('/regime/export'))
+    if (!res.ok) throw new Error(`Export failed: ${res.status} ${res.statusText}`)
+    const blob = await res.blob()
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    const disposition = res.headers.get('Content-Disposition') ?? ''
+    const match = disposition.match(/filename=([^\s;]+)/)
+    link.download = match ? match[1] : 'regimeiq_export.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
   },
 }
