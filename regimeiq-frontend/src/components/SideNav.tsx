@@ -54,10 +54,10 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
               onClick={() => handleClick(item.key)}
               className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out rounded ${
                 isActive
-                  ? 'bg-gradient-to-r from-[#1b1c22] to-[#262834] text-[#4edea3] border-r-2 border-[#4edea3] ring-1 ring-primary/40'
+                  ? 'bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c3c9d1] ring-1 ring-primary/30'
                   : spotlight
-                    ? 'text-[#cbd5e1] border border-primary/20 hover:bg-[#19191d] hover:text-[#e7e4ec]'
-                    : 'text-[#94a3b8] hover:bg-[#19191d] hover:text-[#e7e4ec]'
+                    ? 'text-[#c9ced6] border border-primary/20 hover:bg-[#19191d] hover:text-[#eceff3]'
+                    : 'text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
               }`}
             >
               <span className="material-symbols-outlined text-lg">{item.icon}</span>
