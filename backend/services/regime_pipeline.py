@@ -149,7 +149,13 @@ def run_current_pipeline() -> dict:
             },
             "allocation": ALLOCATION_MAP["Neutral"],
             "etf_mapping": {"equities": "SPY", "bonds": "TLT", "gold": "GLD"},
-            "signals": {},
+            "signals": {
+                "date": str(datetime.now().date()),
+                "growth": {},
+                "inflation": {},
+                "financial": {},
+                "market": {},
+            },
             "fedwatch": {"source": "fallback", "as_of": str(datetime.now().date()), "next_3m": {"cut": 0.33, "hold": 0.34, "hike": 0.33}},
             "macro_release_calendar": {"as_of": str(datetime.now().date()), "releases": []},
             "global_macro": {

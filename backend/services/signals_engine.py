@@ -54,6 +54,17 @@ def _resolve_pmi_series(df: pd.DataFrame) -> pd.Series:
     return pd.Series(np.nan, index=df.index, dtype="float64")
 
 
+def _resolve_nfci_series(df: pd.DataFrame) -> pd.Series:
+    """
+    Prefer canonical `financial_cond`; fallback to common aliases when missing.
+    Keeps the pipeline resilient to schema drift in cached CSVs.
+    """
+    for col in ("financial_cond", "nfci", "financial_conditions"):
+        if col in df.columns:
+            return pd.to_numeric(df[col], errors="coerce")
+    return pd.Series(np.nan, index=df.index, dtype="float64")
+
+
 # ─── historical signals ───────────────────────────────────────────────
 
 def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
@@ -118,7 +129,7 @@ def compute_signals_historical(df: pd.DataFrame) -> pd.DataFrame:
     out["dxy_3m_pct_change"] = df["uup"].pct_change(63)
     out["dollar_strengthening"] = out["dxy_3m_pct_change"] > 0.03
 
-    out["nfci"] = df["financial_cond"]
+    out["nfci"] = _resolve_nfci_series(df)
 
     # ── MARKET RISK ───────────────────────────────────────────────────
     out["sp500_6m_momentum"] = df["sp500"].pct_change(126)
