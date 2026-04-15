@@ -43,7 +43,6 @@ def get_regime_dashboard():
 
 @router.get(
     "/current",
-    response_model=RegimeCurrentResponse,
     summary="Current regime classification with allocation and signals",
 )
 def get_current_regime():
@@ -52,7 +51,6 @@ def get_current_regime():
 
 @router.get(
     "/history",
-    response_model=RegimeHistoryResponse,
     summary="Historical regime classifications",
 )
 def get_regime_history(
@@ -100,15 +98,15 @@ def get_historical_insights():
         {
             "date": str(pd.Timestamp(dt).date()),
             "regime": row["regime"],
-            "total_score": int(row["total_score"]),
+            "total_score": round(float(row["total_score"]), 2),
         }
         for dt, row in timeline_df.iterrows()
     ]
 
     events = [
-        {"date": "2008-09-15", "event": "2008 financial crisis", "window_days": 90, "target_score": 9},
-        {"date": "2020-03-01", "event": "COVID crash", "window_days": 90, "target_score": 8},
-        {"date": "2022-03-16", "event": "Rate hike cycle", "window_days": 120, "target_score": 7},
+        {"date": "2008-09-15", "event": "2008 financial crisis", "window_days": 90, "target_score": 8.5},
+        {"date": "2020-03-01", "event": "COVID crash", "window_days": 90, "target_score": 7.5},
+        {"date": "2022-03-16", "event": "Rate hike cycle", "window_days": 120, "target_score": 6.0},
     ]
     event_overlays = []
     for e in events:
@@ -135,7 +133,7 @@ def get_historical_insights():
             "input_date": e["date"],
             "detected_date": detected_date,
             "regime": row["regime"],
-            "total_score": int(row["total_score"]),
+            "total_score": round(float(row["total_score"]), 2),
         })
 
     # Avg duration by regime from transition gaps
@@ -237,7 +235,7 @@ def get_risk_lab():
             vol_regime = "elevated"
 
     drawdown = float(m.get("sp500_drawdown") or 0.0)
-    crash_prob = min(0.95, max(0.05, float(current.get("total_score", 0)) / 13.0 + (0.15 if vol_regime == "high" else 0.0)))
+    crash_prob = min(0.95, max(0.05, float(current.get("total_score", 0)) / 10.0 + (0.15 if vol_regime == "high" else 0.0)))
 
     drivers = []
     if bool(f.get("credit_spread_widening")):

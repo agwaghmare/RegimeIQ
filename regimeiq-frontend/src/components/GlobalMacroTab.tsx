@@ -319,15 +319,19 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Real Rates vs Equities</h3>
           <div className="text-[11px] text-on-surface-variant">Higher real yields typically pressure equity valuations.</div>
           <div className="rounded bg-surface-container-low p-3">
-            <svg viewBox="0 0 380 180" className="w-full h-44">
-              <line x1="30" y1="150" x2="350" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
-              <line x1="30" y1="20" x2="30" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
-              {realVsEquities.map((pt) => {
-                const x = 30 + clamp(((pt.x + 2) / 6) * 320, 0, 320)
-                const y = 150 - clamp(((pt.y - 60) / 80) * 130, 0, 130)
-                return <circle key={`rvse-${pt.i}`} cx={x} cy={y} r="2.2" className="fill-primary/80" />
-              })}
-            </svg>
+            {realVsEquities.length === 0 ? (
+              <div className="h-44 flex items-center justify-center text-[11px] text-on-surface-variant">No historical data available</div>
+            ) : (
+              <svg viewBox="0 0 380 180" className="w-full h-44">
+                <line x1="30" y1="150" x2="350" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
+                <line x1="30" y1="20" x2="30" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
+                {realVsEquities.map((pt) => {
+                  const x = 30 + clamp(((pt.x + 2) / 6) * 320, 0, 320)
+                  const y = 150 - clamp(((pt.y - 60) / 80) * 130, 0, 130)
+                  return <circle key={`rvse-${pt.i}`} cx={x} cy={y} r="2.2" className="fill-primary/80" />
+                })}
+              </svg>
+            )}
             <div className="mt-1 text-[10px] text-on-surface-variant">X-axis: real yield, Y-axis: equity proxy index.</div>
           </div>
         </div>
@@ -409,25 +413,32 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
             const tickIdx = dates.length > 0
               ? [0, Math.floor(dates.length * 0.25), Math.floor(dates.length * 0.5), Math.floor(dates.length * 0.75), dates.length - 1]
               : []
+            const hasData = yieldPath !== '' || pricePath !== ''
             return (
               <div key={chart.key} className="bg-surface-container-low rounded-lg p-3 border border-outline-variant/10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs font-semibold">{chart.label}</div>
                   <div className="text-[10px] text-on-surface-variant">{range === 'MAX' ? 'All history' : `Past ${range}`}</div>
                 </div>
-                <svg viewBox="0 0 420 120" className="w-full h-32 bg-surface/30 rounded">
-                  <path d={yieldPath} fill="none" stroke="currentColor" className="text-primary" strokeWidth="2.5" />
-                  <path d={pricePath} fill="none" stroke="currentColor" className="text-[#f59e0b]" strokeWidth="2.5" />
-                </svg>
-                <div className="mt-2 flex justify-between text-[10px] text-on-surface-variant tabular-nums">
-                  {tickIdx.map((idx, i) => (
-                    <span key={`${chart.key}-tick-${i}`}>{formatAxisDate(dates[idx])}</span>
-                  ))}
-                </div>
-                <div className="mt-2 flex items-center gap-4 text-[10px] text-on-surface-variant">
-                  <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary"></span>Yield</span>
-                  <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>Price Index</span>
-                </div>
+                {hasData ? (
+                  <>
+                    <svg viewBox="0 0 420 120" className="w-full h-32 bg-surface/30 rounded">
+                      <path d={yieldPath} fill="none" stroke="currentColor" className="text-primary" strokeWidth="2.5" />
+                      <path d={pricePath} fill="none" stroke="currentColor" className="text-[#f59e0b]" strokeWidth="2.5" />
+                    </svg>
+                    <div className="mt-2 flex justify-between text-[10px] text-on-surface-variant tabular-nums">
+                      {tickIdx.map((idx, i) => (
+                        <span key={`${chart.key}-tick-${i}`}>{formatAxisDate(dates[idx])}</span>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex items-center gap-4 text-[10px] text-on-surface-variant">
+                      <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary"></span>Yield</span>
+                      <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>Price Index</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-[11px] text-on-surface-variant bg-surface/30 rounded">No historical data available</div>
+                )}
               </div>
             )
           })}

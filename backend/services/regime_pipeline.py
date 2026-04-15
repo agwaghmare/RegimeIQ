@@ -94,17 +94,14 @@ def run_current_pipeline() -> dict:
         fedwatch = estimate_fedwatch_probabilities(master)
         cut_p = float(fedwatch["next_3m"]["cut"])
         hike_p = float(fedwatch["next_3m"]["hike"])
-        # Portfolio scoring hook: less cut probability implies stickier inflation risk.
+        # FedWatch hook: nudge total_score based on policy path expectations.
+        # +0.7 ≈ equivalent of +1 raw flag on the sigmoid-scaled 0-10 range.
         if cut_p < 0.40:
             scores["inflation_score"] = min(scores["inflation_score"] + 1, 3)
+            scores["total_score"] = round(min(scores["total_score"] + 0.7, 10.0), 2)
         elif cut_p > 0.60 and hike_p < 0.20:
             scores["inflation_score"] = max(scores["inflation_score"] - 1, 0)
-        scores["total_score"] = (
-            scores["growth_score"]
-            + scores["inflation_score"]
-            + scores["financial_score"]
-            + scores["market_score"]
-        )
+            scores["total_score"] = round(max(scores["total_score"] - 0.7, 0.0), 2)
         regime = classify_regime(scores)
         alloc = get_allocation(regime["regime"])
 
@@ -210,7 +207,7 @@ def run_historical_pipeline(
             "regime_color": row["regime_color"],
             "risk_level": int(row["risk_level"]),
             "probability": float(row["probability"]),
-            "total_score": int(row["total_score"]),
+            "total_score": round(float(row["total_score"]), 2),
             "growth_score": int(row["growth_score"]),
             "inflation_score": int(row["inflation_score"]),
             "financial_score": int(row["financial_score"]),

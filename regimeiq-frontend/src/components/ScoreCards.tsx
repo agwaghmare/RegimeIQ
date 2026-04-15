@@ -54,7 +54,6 @@ export function ScoreCards({ scores }: Props) {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="flex justify-between items-start mb-3">
               <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{card.label}</span>
-              <span className={`material-symbols-outlined ${c.text} text-sm`}>{card.icon}</span>
             </div>
             <div className="flex items-center justify-between">
               <div>

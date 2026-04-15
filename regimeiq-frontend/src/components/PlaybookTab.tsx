@@ -126,7 +126,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
           <div className="space-y-3 text-xs">
             <div className="rounded-lg bg-surface-container-high p-3 border border-outline-variant/20">
               <div className="text-on-surface-variant mb-1">Now</div>
-              <div>Regime score {totalScore}/13 with {bias.toLowerCase()}.</div>
+              <div>Regime score {typeof totalScore === 'number' ? totalScore.toFixed(1) : totalScore}/10 with {bias.toLowerCase()}.</div>
             </div>
             <div className="rounded-lg bg-surface-container-high p-3 border border-outline-variant/20">
               <div className="text-on-surface-variant mb-1">3M</div>
@@ -160,7 +160,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
               <div key={t} className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs">{t}</div>
             ))}
           </div>
-          <div className="text-xs text-on-surface-variant mb-2">If X happens -> do Y</div>
+          <div className="text-xs text-on-surface-variant mb-2">If X happens {'→'} do Y</div>
           <div className="space-y-2">
             {tradePlaybook.scenarios.map((t) => (
               <div key={t} className="rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2 text-xs">{t}</div>

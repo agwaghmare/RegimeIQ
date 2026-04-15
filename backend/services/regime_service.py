@@ -24,12 +24,13 @@ from services.scoring_engine import (
 
 # ─── regime definitions ──────────────────────────────────────────────
 #  (lo, hi, label, color_hex, risk_level)
+#  Thresholds are on the 0-10 ML-predicted scale.
 
-REGIME_BANDS: list[tuple[int, int, str, str, int]] = [
-    (0,  3,  "Risk-On",  "#22c55e", 1),
-    (4,  6,  "Neutral",  "#eab308", 2),
-    (7,  9,  "Risk-Off", "#f97316", 3),
-    (10, 13, "Crisis",   "#ef4444", 4),
+REGIME_BANDS: list[tuple[float, float, str, str, int]] = [
+    (0.0, 2.5, "Risk-On",  "#22c55e", 1),
+    (2.5, 5.0, "Neutral",  "#eab308", 2),
+    (5.0, 7.5, "Risk-Off", "#f97316", 3),
+    (7.5, 10.0, "Crisis",  "#ef4444", 4),
 ]
 
 
@@ -48,17 +49,17 @@ def classify_regime(scores: dict) -> dict:
     -------
     dict with regime label, color, probability, and full breakdown.
     """
-    total = int(scores.get("total_score", 0))
+    total = float(scores.get("total_score", 0.0))
 
     # Clamp to valid range
-    total = max(0, min(total, TOTAL_MAX))
+    total = max(0.0, min(total, float(TOTAL_MAX)))
 
     regime = "Neutral"
     color = "#eab308"
     risk_level = 2
 
     for lo, hi, label, hex_color, rl in REGIME_BANDS:
-        if lo <= total <= hi:
+        if lo <= total < hi or (hi == float(TOTAL_MAX) and total <= hi):
             regime = label
             color = hex_color
             risk_level = rl
@@ -102,12 +103,12 @@ def classify_regime_historical(scores_df: pd.DataFrame) -> pd.DataFrame:
     # Clamp total score
     df["total_score"] = df["total_score"].clip(0, TOTAL_MAX)
 
-    # Map total_score → regime using np.select
+    # Map total_score → regime using np.select (0-10 float thresholds)
     conditions = [
-        df["total_score"] <= 3,
-        df["total_score"] <= 6,
-        df["total_score"] <= 9,
-        df["total_score"] <= 13,
+        df["total_score"] < 2.5,
+        df["total_score"] < 5.0,
+        df["total_score"] < 7.5,
+        df["total_score"] <= 10.0,
     ]
 
     regime_labels = ["Risk-On", "Neutral", "Risk-Off", "Crisis"]

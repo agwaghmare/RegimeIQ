@@ -118,11 +118,6 @@ function trendArrow(t: MetricRow['trend']): string {
   return 'trending_flat'
 }
 
-function riskBucket(totalScore: number): 'LOW' | 'MEDIUM' | 'HIGH' {
-  if (totalScore <= 4) return 'LOW'
-  if (totalScore <= 8) return 'MEDIUM'
-  return 'HIGH'
-}
 
 export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
@@ -190,7 +185,6 @@ export default function App() {
     macro: Math.max(0, Math.min(100, Math.round((1 - ((data.scores.growth + data.scores.inflation + data.scores.financial_conditions) / 12)) * 100))),
     market: Math.max(0, Math.min(100, Math.round((1 - (data.scores.market_risk / 4)) * 100))),
   }
-  const dashboardRisk = riskBucket(data.total_score)
   const timeline = useMemo(() => {
     const items = historicalInsights?.timeline ?? []
     return items.slice(-12)
@@ -348,7 +342,7 @@ export default function App() {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div className="xl:col-span-1 bg-surface-container rounded-xl border border-outline-variant/20 p-5 shadow-sm">
               <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-4">Regime Timeline (12M)</div>
               <div className="flex h-8 rounded overflow-hidden bg-surface-container-highest">
@@ -385,22 +379,6 @@ export default function App() {
               </div>
             </div>
 
-            <div className="xl:col-span-1 bg-surface-container rounded-xl border border-outline-variant/20 p-5 shadow-sm">
-              <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-4">Risk Gauge</div>
-              <div className="flex items-center gap-5">
-                <div className="relative h-24 w-24 rounded-full border-8 border-surface-container-highest">
-                  <div
-                    className="absolute left-1/2 top-1/2 h-1 w-9 origin-left -translate-y-1/2 bg-primary rounded"
-                    style={{ transform: `translateY(-50%) rotate(${(data.total_score / data.max_score) * 180 - 90}deg)` }}
-                  ></div>
-                  <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold">{dashboardRisk}</div>
-                </div>
-                <div className="text-xs text-on-surface-variant">
-                  <div>Total score: <span className="text-on-surface font-semibold">{data.total_score}/{data.max_score}</span></div>
-                  <div className="mt-1">Risk state: <span className="text-on-surface font-semibold">{dashboardRisk}</span></div>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">

@@ -134,7 +134,7 @@ class RegimeCurrentResponse(BaseModel):
     regime_color: str
     risk_level: int
     probability: float
-    total_score: int
+    total_score: float
     breakdown: BreakdownResponse
     allocation: AllocationWeights
     etf_mapping: EtfMapping
@@ -150,7 +150,7 @@ class RegimeHistoryItem(BaseModel):
     regime_color: str
     risk_level: int
     probability: float
-    total_score: int
+    total_score: float
     growth_score: int
     inflation_score: int
     financial_score: int
@@ -204,5 +204,5 @@ class TransitionsResponse(BaseModel):
 # ─── scores endpoint ─────────────────────────────────────────────────
 
 class ScoresResponse(BaseModel):
-    total_score: int
+    total_score: float
     breakdown: BreakdownResponse
