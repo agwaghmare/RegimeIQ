@@ -28,6 +28,8 @@ from services.regime_service import (
 from services.allocation_service import (
     get_allocation, ALLOCATION_MAP,
 )
+from services.fedwatch_service import estimate_fedwatch_probabilities
+from services.calendar_service import next_macro_releases
 
 
 # ─── in-memory cache for historical pipeline ─────────────────────────
@@ -37,6 +39,12 @@ _cache: dict = {
     "timestamp": 0.0,
 }
 _CACHE_TTL = 3600  # 1 hour
+
+
+def _safe_num(value) -> float | None:
+    if pd.isna(value):
+        return None
+    return float(value)
 
 
 def clear_cache():
@@ -50,7 +58,15 @@ def _get_historical_df() -> pd.DataFrame:
     now = time.time()
     if (_cache["historical_df"] is not None
             and (now - _cache["timestamp"]) < _CACHE_TTL):
-        return _cache["historical_df"]
+        # Recompute early if master dataset advanced beyond cached history.
+        try:
+            master_latest = pd.Timestamp(get_master_dataset().index.max()).normalize()
+            cache_latest = pd.Timestamp(_cache["historical_df"].index.max()).normalize()
+            if cache_latest >= master_latest:
+                return _cache["historical_df"]
+        except Exception:
+            # Fall through to recompute if any date inspection fails.
+            pass
 
     master = get_master_dataset()
     hist_sigs = compute_signals_historical(master)
@@ -72,8 +88,23 @@ def run_current_pipeline() -> dict:
     """
     try:
         master = get_master_dataset()
+        latest = master.iloc[-1]
         signals = compute_signals_latest(master)
         scores = compute_scores(signals)
+        fedwatch = estimate_fedwatch_probabilities(master)
+        cut_p = float(fedwatch["next_3m"]["cut"])
+        hike_p = float(fedwatch["next_3m"]["hike"])
+        # Portfolio scoring hook: less cut probability implies stickier inflation risk.
+        if cut_p < 0.40:
+            scores["inflation_score"] = min(scores["inflation_score"] + 1, 3)
+        elif cut_p > 0.60 and hike_p < 0.20:
+            scores["inflation_score"] = max(scores["inflation_score"] - 1, 0)
+        scores["total_score"] = (
+            scores["growth_score"]
+            + scores["inflation_score"]
+            + scores["financial_score"]
+            + scores["market_score"]
+        )
         regime = classify_regime(scores)
         alloc = get_allocation(regime["regime"])
 
@@ -88,6 +119,17 @@ def run_current_pipeline() -> dict:
             "allocation": alloc["allocation"],
             "etf_mapping": alloc["etf_mapping"],
             "signals": signals,
+            "fedwatch": fedwatch,
+            "macro_release_calendar": next_macro_releases(),
+            "global_macro": {
+                "fed_funds_3m_change": _safe_num(latest.get("fed_funds_3m_change")),
+                "real_rate_10y": _safe_num(latest.get("real_rate_10y")),
+                "cpi_yoy": _safe_num(latest.get("cpi_yoy")),
+                "dxy_3m_pct_change": _safe_num(signals["financial"].get("dxy_3m_pct_change")),
+                "boj_10y_yield": _safe_num(latest.get("boj_10y_yield")),
+                "ecb_policy_rate": _safe_num(latest.get("ecb_policy_rate")),
+                "uk_10y_gilt_yield": _safe_num(latest.get("uk_10y_gilt_yield")),
+            },
         }
     except Exception as e:
         traceback.print_exc()
@@ -107,7 +149,24 @@ def run_current_pipeline() -> dict:
             },
             "allocation": ALLOCATION_MAP["Neutral"],
             "etf_mapping": {"equities": "SPY", "bonds": "TLT", "gold": "GLD"},
-            "signals": {},
+            "signals": {
+                "date": str(datetime.now().date()),
+                "growth": {},
+                "inflation": {},
+                "financial": {},
+                "market": {},
+            },
+            "fedwatch": {"source": "fallback", "as_of": str(datetime.now().date()), "next_3m": {"cut": 0.33, "hold": 0.34, "hike": 0.33}},
+            "macro_release_calendar": {"as_of": str(datetime.now().date()), "releases": []},
+            "global_macro": {
+                "fed_funds_3m_change": None,
+                "real_rate_10y": None,
+                "cpi_yoy": None,
+                "dxy_3m_pct_change": None,
+                "boj_10y_yield": None,
+                "ecb_policy_rate": None,
+                "uk_10y_gilt_yield": None,
+            },
         }
 
 

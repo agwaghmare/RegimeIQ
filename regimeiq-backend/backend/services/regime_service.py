@@ -1,320 +1,170 @@
-import os
+"""
+regime_service.py
+─────────────────
+Maps total scores → regime labels + probability.
+
+Regime bands:
+  0–3   Risk-On    (green)
+  4–6   Neutral    (yellow)
+  7–9   Risk-Off   (orange)
+  10–13 Crisis     (red)
+
+Provides point-in-time classification and full historical regime series.
+"""
+
+from __future__ import annotations
+
+import numpy as np
 import pandas as pd
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MACRO_CSV = os.path.join(BASE_DIR, "data", "macroData", "macro_data.csv")
-MARKET_CSV = os.path.join(BASE_DIR, "data", "marketData", "market_features.csv")
+from services.scoring_engine import (
+    GROWTH_MAX, INFLATION_MAX, FINANCIAL_MAX, MARKET_MAX, TOTAL_MAX,
+)
 
 
-def _clamp(val: float, lo: float, hi: float) -> float:
-    return max(lo, min(hi, val))
+# ─── regime definitions ──────────────────────────────────────────────
+#  (lo, hi, label, color_hex, risk_level)
+
+REGIME_BANDS: list[tuple[int, int, str, str, int]] = [
+    (0,  3,  "Risk-On",  "#22c55e", 1),
+    (4,  6,  "Neutral",  "#eab308", 2),
+    (7,  9,  "Risk-Off", "#f97316", 3),
+    (10, 13, "Crisis",   "#ef4444", 4),
+]
 
 
-def _load_cached_macro() -> pd.DataFrame:
-    return pd.read_csv(MACRO_CSV, index_col=0, parse_dates=True)
+# ─── point-in-time ───────────────────────────────────────────────────
 
+def classify_regime(scores: dict) -> dict:
+    """
+    Convert a scores dict into a regime classification.
 
-def _load_cached_market() -> pd.DataFrame:
-    df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=True)
-    if df.empty:
-        from services.market_service import compute_market_features
-        df = compute_market_features()
-    return df
+    Parameters
+    ----------
+    scores : dict with keys growth_score, inflation_score, financial_score,
+             market_score, total_score (from scoring_engine.compute_scores)
 
+    Returns
+    -------
+    dict with regime label, color, probability, and full breakdown.
+    """
+    total = int(scores.get("total_score", 0))
 
-def _trend(current: float, prev: float) -> str:
-    if current > prev * 1.005:
-        return "up"
-    if current < prev * 0.995:
-        return "down"
-    return "flat"
+    # Clamp to valid range
+    total = max(0, min(total, TOTAL_MAX))
 
+    regime = "Neutral"
+    color = "#eab308"
+    risk_level = 2
 
-def _status(value: float, thresholds: dict) -> str:
-    """thresholds = {"CRITICAL": fn, "WARNING": fn, "NEUTRAL": fn} checked in order."""
-    for label, check in thresholds.items():
-        if check(value):
-            return label
-    return "NORMAL"
+    for lo, hi, label, hex_color, rl in REGIME_BANDS:
+        if lo <= total <= hi:
+            regime = label
+            color = hex_color
+            risk_level = rl
+            break
 
-
-def _compute_growth_score(row: dict, prev: dict) -> float:
-    score = 0.0
-    unemp = row.get("unemployment", 5.0)
-    score += _clamp((5.0 - unemp) / 1.5, 0, 1)
-
-    yc = row.get("yield_curve_10y2y", 0.0)
-    score += _clamp((yc + 0.5) / 1.0, 0, 1)
-
-    indpro = row.get("indpro_yoy", 0.0)
-    score += _clamp(indpro / 3.0, 0, 1)
-
-    payrolls = row.get("payrolls_mom", 0.0)
-    score += _clamp(payrolls / 200.0, 0, 1)
-
-    return round(_clamp(score, 0, 4), 2)
-
-
-def _compute_inflation_score(row: dict) -> float:
-    """Higher = more inflationary pressure."""
-    score = 0.0
-
-    cpi = row.get("cpi_yoy", 2.0)
-    score += _clamp((cpi - 2.0) / 4.0, 0, 2)
-
-    pce = row.get("core_pce_yoy", 2.0)
-    score += _clamp((pce - 2.0) / 2.0, 0, 2)
-
-    return round(_clamp(score, 0, 4), 2)
-
-
-def _compute_financial_score(row: dict) -> float:
-    """Higher = more accommodative (good for risk assets)."""
-    score = 0.0
-
-    hy = row.get("credit_spread_hy", 4.0)
-    score += _clamp((6.0 - hy) / 4.0, 0, 1)
-
-    real_rate = row.get("real_rate_10y", 1.5)
-    score += _clamp((2.5 - real_rate) / 2.5, 0, 1)
-
-    nfci = row.get("financial_cond", 0.0)
-    score += _clamp((-nfci + 0.5) / 1.0, 0, 1)
-
-    ig = row.get("credit_spread_ig", 1.0)
-    score += _clamp((1.5 - ig) / 0.7, 0, 1)
-
-    return round(_clamp(score, 0, 4), 2)
-
-
-def _compute_market_risk_score(mrow: dict) -> float:
-    """Higher = better market conditions (low risk)."""
-    score = 0.0
-
-    vix = mrow.get("vix", 20.0)
-    score += _clamp((30.0 - vix) / 15.0, 0, 1)
-
-    drawdown = mrow.get("sp500_drawdown", 0.0)
-    score += _clamp((drawdown + 0.20) / 0.20, 0, 1)
-
-    mom1 = mrow.get("sp500_1m_mom", 0.0)
-    score += _clamp(mom1 / 0.03, 0, 1)
-
-    mom3 = mrow.get("sp500_3m_mom", 0.0)
-    score += _clamp(mom3 / 0.05, 0, 1)
-
-    return round(_clamp(score, 0, 4), 2)
-
-
-def _classify(growth: float, inflation: float, financial: float, market: float) -> tuple[str, float]:
-    composite = growth + financial + market - (inflation * 0.5)
-    if composite >= 8.5:
-        return "Risk-On", round(_clamp(0.45 + (composite - 8.5) / 20, 0.45, 0.90), 2)
-    if composite >= 5.5:
-        return "Expansion", round(_clamp(0.40 + (composite - 5.5) / 20, 0.40, 0.65), 2)
-    if composite >= 3.0:
-        return "Neutral", 0.45
-    return "Risk-Off", round(_clamp(0.40 + (3.0 - composite) / 10, 0.40, 0.80), 2)
-
-
-def _fmt_pct(val: float, decimals: int = 1) -> str:
-    return f"{val:.{decimals}f}%"
-
-
-def _fmt_val(val: float, decimals: int = 2) -> str:
-    return f"{val:.{decimals}f}"
-
-
-def get_regime_snapshot() -> dict:
-    macro_df = _load_cached_macro()
-    market_df = _load_cached_market()
-
-    macro = macro_df.tail(2)
-    m_row = macro.iloc[-1].to_dict()
-    m_prev = macro.iloc[-2].to_dict() if len(macro) > 1 else m_row
-
-    mkt = market_df.tail(2)
-    if len(mkt) == 0:
-        mk_row: dict = {}
-        mk_prev: dict = {}
-    else:
-        mk_row = mkt.iloc[-1].to_dict()
-        mk_prev = mkt.iloc[-2].to_dict() if len(mkt) > 1 else mk_row
-
-    growth = _compute_growth_score(m_row, m_prev)
-    inflation = _compute_inflation_score(m_row)
-    financial = _compute_financial_score(m_row)
-    market_risk = _compute_market_risk_score(mk_row)
-    total = round(growth + inflation + financial + market_risk, 2)
-
-    regime, probability = _classify(growth, inflation, financial, market_risk)
-
-    updated_at = str(macro_df.index[-1].date()) if hasattr(macro_df.index[-1], "date") else str(macro_df.index[-1])
-
-    # --- Growth metrics rows ---
-    unemp = m_row.get("unemployment", 0)
-    yc = m_row.get("yield_curve_10y2y", 0)
-    indpro = m_row.get("indpro_yoy", 0)
-    payrolls = m_row.get("payrolls_mom", 0)
-    fed_funds = m_row.get("fed_funds", 0)
-
-    growth_metrics = [
-        {
-            "metric": "Unemployment Rate",
-            "value": _fmt_pct(unemp),
-            "trend": _trend(unemp, m_prev.get("unemployment", unemp)),
-            "status": _status(unemp, {"CRITICAL": lambda v: v > 7, "WARNING": lambda v: v > 5.5}),
-        },
-        {
-            "metric": "Fed Funds Rate",
-            "value": _fmt_pct(fed_funds),
-            "trend": _trend(fed_funds, m_prev.get("fed_funds", fed_funds)),
-            "status": _status(fed_funds, {"WARNING": lambda v: v > 5, "NEUTRAL": lambda v: v > 3}),
-        },
-        {
-            "metric": "Yield Curve (10Y-2Y)",
-            "value": _fmt_val(yc),
-            "trend": _trend(yc, m_prev.get("yield_curve_10y2y", yc)),
-            "status": _status(yc, {"CRITICAL": lambda v: v < -0.5, "WARNING": lambda v: v < 0}),
-        },
-        {
-            "metric": "Industrial Production YoY",
-            "value": _fmt_pct(indpro),
-            "trend": _trend(indpro, m_prev.get("indpro_yoy", indpro)),
-            "status": _status(indpro, {"WARNING": lambda v: v < 0, "NEUTRAL": lambda v: v < 1}),
-        },
-        {
-            "metric": "Nonfarm Payrolls MoM",
-            "value": f"{int(payrolls):,}k",
-            "trend": _trend(payrolls, m_prev.get("payrolls_mom", payrolls)),
-            "status": _status(payrolls, {"CRITICAL": lambda v: v < 0, "WARNING": lambda v: v < 50}),
-        },
-    ]
-
-    # --- Inflation metrics rows ---
-    cpi_yoy = m_row.get("cpi_yoy", 0)
-    core_pce_yoy = m_row.get("core_pce_yoy", 0)
-    core_cpi_yoy = m_row.get("core_cpi_yoy", 0)
-    ppi_yoy = m_row.get("ppi_yoy", 0)
-
-    inflation_metrics = [
-        {
-            "metric": "CPI YoY",
-            "value": _fmt_pct(cpi_yoy),
-            "trend": _trend(cpi_yoy, m_prev.get("cpi_yoy", cpi_yoy)),
-            "status": _status(cpi_yoy, {"CRITICAL": lambda v: v > 5, "WARNING": lambda v: v > 3.5, "NEUTRAL": lambda v: v > 2.5}),
-        },
-        {
-            "metric": "Core CPI YoY",
-            "value": _fmt_pct(core_cpi_yoy),
-            "trend": _trend(core_cpi_yoy, m_prev.get("core_cpi_yoy", core_cpi_yoy)),
-            "status": _status(core_cpi_yoy, {"CRITICAL": lambda v: v > 5, "WARNING": lambda v: v > 3.5, "NEUTRAL": lambda v: v > 2.5}),
-        },
-        {
-            "metric": "Core PCE YoY",
-            "value": _fmt_pct(core_pce_yoy),
-            "trend": _trend(core_pce_yoy, m_prev.get("core_pce_yoy", core_pce_yoy)),
-            "status": _status(core_pce_yoy, {"CRITICAL": lambda v: v > 4, "WARNING": lambda v: v > 3, "NEUTRAL": lambda v: v > 2.5}),
-        },
-        {
-            "metric": "PPI YoY",
-            "value": _fmt_pct(ppi_yoy),
-            "trend": _trend(ppi_yoy, m_prev.get("ppi_yoy", ppi_yoy)),
-            "status": _status(ppi_yoy, {"CRITICAL": lambda v: v > 6, "WARNING": lambda v: v > 4, "NEUTRAL": lambda v: v > 2}),
-        },
-    ]
-
-    # --- Financial conditions rows ---
-    hy_spread = m_row.get("credit_spread_hy", 0)
-    ig_spread = m_row.get("credit_spread_ig", 0)
-    real_rate = m_row.get("real_rate_10y", 0)
-    nfci = m_row.get("financial_cond", 0)
-
-    financial_metrics = [
-        {
-            "metric": "HY Credit Spread (OAS)",
-            "value": f"{hy_spread:.2f}%",
-            "trend": _trend(hy_spread, m_prev.get("credit_spread_hy", hy_spread)),
-            "status": _status(hy_spread, {"CRITICAL": lambda v: v > 8, "WARNING": lambda v: v > 5, "NEUTRAL": lambda v: v > 3}),
-        },
-        {
-            "metric": "IG Credit Spread (OAS)",
-            "value": f"{ig_spread:.2f}%",
-            "trend": _trend(ig_spread, m_prev.get("credit_spread_ig", ig_spread)),
-            "status": _status(ig_spread, {"WARNING": lambda v: v > 2, "NEUTRAL": lambda v: v > 1.2}),
-        },
-        {
-            "metric": "Real Rates (10Y)",
-            "value": _fmt_pct(real_rate),
-            "trend": _trend(real_rate, m_prev.get("real_rate_10y", real_rate)),
-            "status": _status(real_rate, {"WARNING": lambda v: v > 2.5, "NEUTRAL": lambda v: v > 1.5}),
-        },
-        {
-            "metric": "Chicago NFCI",
-            "value": _fmt_val(nfci),
-            "trend": _trend(nfci, m_prev.get("financial_cond", nfci)),
-            "status": _status(nfci, {"CRITICAL": lambda v: v > 0.5, "WARNING": lambda v: v > 0, "NEUTRAL": lambda v: v > -0.3}),
-        },
-    ]
-
-    # --- Market risk rows ---
-    vix = mk_row.get("vix", 0)
-    drawdown = mk_row.get("sp500_drawdown", 0)
-    mom1 = mk_row.get("sp500_1m_mom", 0)
-    mom3 = mk_row.get("sp500_3m_mom", 0)
-
-    market_metrics = [
-        {
-            "metric": "VIX Index",
-            "value": _fmt_val(vix),
-            "trend": _trend(vix, mk_prev.get("vix", vix)),
-            "status": _status(vix, {"CRITICAL": lambda v: v > 30, "WARNING": lambda v: v > 20, "NEUTRAL": lambda v: v > 15}),
-        },
-        {
-            "metric": "S&P 500 Drawdown",
-            "value": _fmt_pct(drawdown * 100),
-            "trend": _trend(drawdown, mk_prev.get("sp500_drawdown", drawdown)),
-            "status": _status(drawdown, {"CRITICAL": lambda v: v < -0.20, "WARNING": lambda v: v < -0.10, "NEUTRAL": lambda v: v < -0.05}),
-        },
-        {
-            "metric": "S&P 500 1M Return",
-            "value": _fmt_pct(mom1 * 100),
-            "trend": _trend(mom1, mk_prev.get("sp500_1m_mom", mom1)),
-            "status": _status(mom1, {"CRITICAL": lambda v: v < -0.10, "WARNING": lambda v: v < -0.03, "NEUTRAL": lambda v: v < 0}),
-        },
-        {
-            "metric": "S&P 500 3M Return",
-            "value": _fmt_pct(mom3 * 100),
-            "trend": _trend(mom3, mk_prev.get("sp500_3m_mom", mom3)),
-            "status": _status(mom3, {"CRITICAL": lambda v: v < -0.15, "WARNING": lambda v: v < -0.05, "NEUTRAL": lambda v: v < 0}),
-        },
-    ]
-
-    # --- Portfolio allocation based on regime ---
-    if regime == "Risk-On":
-        allocation = {"equities": 0.65, "bonds": 0.25, "alternatives": 0.10}
-    elif regime == "Expansion":
-        allocation = {"equities": 0.55, "bonds": 0.35, "alternatives": 0.10}
-    elif regime == "Neutral":
-        allocation = {"equities": 0.45, "bonds": 0.45, "alternatives": 0.10}
-    else:
-        allocation = {"equities": 0.25, "bonds": 0.60, "alternatives": 0.15}
+    probability = round(total / TOTAL_MAX, 4)
 
     return {
         "regime": regime,
+        "regime_color": color,
+        "risk_level": risk_level,
         "probability": probability,
         "total_score": total,
-        "max_score": 16.0,
-        "scores": {
-            "growth": growth,
-            "inflation": inflation,
-            "financial_conditions": financial,
-            "market_risk": market_risk,
+        "breakdown": {
+            "growth":    {"score": int(scores.get("growth_score", 0)),    "max": GROWTH_MAX},
+            "inflation": {"score": int(scores.get("inflation_score", 0)), "max": INFLATION_MAX},
+            "financial": {"score": int(scores.get("financial_score", 0)), "max": FINANCIAL_MAX},
+            "market":    {"score": int(scores.get("market_score", 0)),    "max": MARKET_MAX},
         },
-        "growth_metrics": growth_metrics,
-        "inflation_metrics": inflation_metrics,
-        "financial_metrics": financial_metrics,
-        "market_metrics": market_metrics,
-        "allocation": allocation,
-        "updated_at": updated_at,
+    }
+
+
+# ─── historical (vectorised) ─────────────────────────────────────────
+
+def classify_regime_historical(scores_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Apply regime classification to every row of a scores DataFrame.
+
+    Parameters
+    ----------
+    scores_df : DataFrame with columns growth_score, inflation_score,
+                financial_score, market_score, total_score
+                (from scoring_engine.compute_scores_historical)
+
+    Returns
+    -------
+    DataFrame with added columns: regime, regime_color, risk_level, probability
+    """
+    df = scores_df.copy()
+
+    # Clamp total score
+    df["total_score"] = df["total_score"].clip(0, TOTAL_MAX)
+
+    # Map total_score → regime using np.select
+    conditions = [
+        df["total_score"] <= 3,
+        df["total_score"] <= 6,
+        df["total_score"] <= 9,
+        df["total_score"] <= 13,
+    ]
+
+    regime_labels = ["Risk-On", "Neutral", "Risk-Off", "Crisis"]
+    regime_colors = ["#22c55e", "#eab308", "#f97316", "#ef4444"]
+    risk_levels = [1, 2, 3, 4]
+
+    df["regime"] = np.select(conditions, regime_labels, default="Neutral")
+    df["regime_color"] = np.select(conditions, regime_colors, default="#eab308")
+    df["risk_level"] = np.select(conditions, risk_levels, default=2)
+    df["probability"] = (df["total_score"] / TOTAL_MAX).round(4)
+
+    return df
+
+
+# ─── summary stats ───────────────────────────────────────────────────
+
+def get_regime_summary(regime_df: pd.DataFrame) -> dict:
+    """
+    Compute summary statistics about regime distribution.
+
+    Parameters
+    ----------
+    regime_df : DataFrame from classify_regime_historical() — must have
+                'regime' column and a DatetimeIndex.
+
+    Returns
+    -------
+    dict with total_days, distribution, and current streak info.
+    """
+    total = len(regime_df)
+
+    # Distribution
+    distribution = {}
+    for _, _, label, _, _ in REGIME_BANDS:
+        count = int((regime_df["regime"] == label).sum())
+        distribution[label] = {
+            "count": count,
+            "pct": round(count / total, 4) if total > 0 else 0.0,
+        }
+
+    # Current streak: count consecutive days of the same regime from the end
+    current_regime = regime_df["regime"].iloc[-1]
+    streak = 0
+    for val in reversed(regime_df["regime"].values):
+        if val == current_regime:
+            streak += 1
+        else:
+            break
+
+    streak_start = regime_df.index[-streak] if streak > 0 else regime_df.index[-1]
+
+    return {
+        "total_days": total,
+        "regime_distribution": distribution,
+        "current_regime_streak": {
+            "regime": current_regime,
+            "start_date": str(streak_start.date()),
+            "days": streak,
+        },
     }

@@ -51,6 +51,7 @@ class InflationSignals(BaseModel):
     cpi_yoy: Optional[float] = None
     cpi_above_3: bool
     cpi_3m_change: Optional[float] = None
+    fed_funds_3m_change: Optional[float] = None
     cpi_trend_rising: bool
     core_cpi_yoy: Optional[float] = None
     real_rate: Optional[float] = None
@@ -60,6 +61,7 @@ class InflationSignals(BaseModel):
 class FinancialSignals(BaseModel):
     credit_spread: Optional[float] = None
     credit_spread_3m_change: Optional[float] = None
+    credit_spread_3m_pct_change: Optional[float] = None
     credit_spread_widening: bool
     nominal_10y_3m_change: Optional[float] = None
     rate_rising_sharply: bool
@@ -74,6 +76,7 @@ class MarketSignals(BaseModel):
     momentum_negative: bool
     sp500_30d_vol: Optional[float] = None
     vix_level: Optional[float] = None
+    vix_1m_change: Optional[float] = None
     vix_above_25: bool
     vix_regime: Optional[str] = None
     sp500_drawdown: Optional[float] = None
@@ -91,6 +94,38 @@ class SignalsResponse(BaseModel):
     market: MarketSignals
 
 
+class GlobalMacroSnapshot(BaseModel):
+    fed_funds_3m_change: Optional[float] = None
+    real_rate_10y: Optional[float] = None
+    cpi_yoy: Optional[float] = None
+    dxy_3m_pct_change: Optional[float] = None
+    boj_10y_yield: Optional[float] = None
+    ecb_policy_rate: Optional[float] = None
+    uk_10y_gilt_yield: Optional[float] = None
+
+
+class FedWatchNext3M(BaseModel):
+    cut: float
+    hold: float
+    hike: float
+
+
+class FedWatchResponse(BaseModel):
+    source: str
+    as_of: str
+    next_3m: FedWatchNext3M
+
+
+class MacroReleaseItem(BaseModel):
+    event: str
+    date: str
+
+
+class MacroReleaseCalendar(BaseModel):
+    as_of: str
+    releases: list[MacroReleaseItem]
+
+
 # ─── regime endpoints ────────────────────────────────────────────────
 
 class RegimeCurrentResponse(BaseModel):
@@ -104,6 +139,9 @@ class RegimeCurrentResponse(BaseModel):
     allocation: AllocationWeights
     etf_mapping: EtfMapping
     signals: SignalsResponse
+    fedwatch: FedWatchResponse
+    macro_release_calendar: MacroReleaseCalendar
+    global_macro: GlobalMacroSnapshot
 
 
 class RegimeHistoryItem(BaseModel):

@@ -13,6 +13,9 @@ Allocation table:
 from __future__ import annotations
 
 import pandas as pd
+import numpy as np
+
+from services.data_merge_service import get_master_dataset
 
 
 # ─── allocation map ──────────────────────────────────────────────────
@@ -146,3 +149,145 @@ def get_allocation_transitions(regime_df: pd.DataFrame) -> list[dict]:
         })
 
     return transitions
+
+
+def _annualized_sharpe(returns: pd.Series) -> float:
+    clean = pd.to_numeric(returns, errors="coerce").dropna()
+    if clean.empty:
+        return 0.0
+    vol = clean.std()
+    if vol == 0 or pd.isna(vol):
+        return 0.0
+    return float((clean.mean() / vol) * np.sqrt(252))
+
+
+def get_rebalance_plan(regime: str, risk_tolerance: str = "moderate") -> dict:
+    """
+    Return concrete buy suggestions + 6-holding Sharpe-ranked portfolio.
+    """
+    master = get_master_dataset().copy()
+    # Keep recent window to reflect current market conditions.
+    px = master.tail(252)
+    returns = px.pct_change().dropna(how="all")
+
+    asset_map = {
+        "stocks": {
+            "SPY": "sp500",
+            "QQQ": "nasdaq",
+            "IWM": "russell2000",
+            "EFA": "intl_dev",
+            "EEM": "em_equity",
+        },
+        "bonds": {
+            "TLT": "tlt",
+            "SHY": "shy",
+            "LQD": "lqd",
+            "HYG": "hyg",
+            "EMB": "emb",
+        },
+        "commodities": {
+            "GLD": "gld",
+            "USO": "uso",
+            "DBA": "dba",
+        },
+    }
+
+    def rank_assets(group: dict[str, str]) -> list[dict]:
+        ranked: list[dict] = []
+        for ticker, col in group.items():
+            if col not in returns.columns:
+                continue
+            r = returns[col]
+            sharpe = _annualized_sharpe(r)
+            if np.isnan(sharpe):
+                continue
+            ranked.append(
+                {
+                    "ticker": ticker,
+                    "sharpe": round(float(sharpe), 3),
+                    "ann_return": round(float(r.mean() * 252), 4),
+                    "ann_vol": round(float(r.std() * np.sqrt(252)), 4),
+                }
+            )
+        ranked.sort(key=lambda x: x["sharpe"], reverse=True)
+        return ranked
+
+    ranked_stocks = rank_assets(asset_map["stocks"])
+    ranked_bonds = rank_assets(asset_map["bonds"])
+    ranked_commodities = rank_assets(asset_map["commodities"])
+
+    # Guarantee explicit "what to buy" guidance by bucket.
+    buy_recommendations = {
+        "stocks": ranked_stocks[:2],
+        "bonds": ranked_bonds[:2],
+        "commodities": ranked_commodities[:2],
+    }
+
+    # Risk profile tilt from base regime mix.
+    base = ALLOCATION_MAP.get(regime, ALLOCATION_MAP["Neutral"]).copy()
+    risk = (risk_tolerance or "moderate").strip().lower()
+    if risk == "conservative":
+        base["equities"] = max(0.05, base["equities"] - 0.10)
+        base["bonds"] = min(0.85, base["bonds"] + 0.10)
+    elif risk == "aggressive":
+        base["equities"] = min(0.90, base["equities"] + 0.10)
+        base["bonds"] = max(0.05, base["bonds"] - 0.10)
+
+    total = base["equities"] + base["bonds"] + base["gold"]
+    for k in base:
+        base[k] = base[k] / total
+
+    selected = buy_recommendations["stocks"] + buy_recommendations["bonds"] + buy_recommendations["commodities"]
+    if len(selected) < 6:
+        # fallback fill from all assets by Sharpe
+        all_ranked = ranked_stocks + ranked_bonds + ranked_commodities
+        seen = {a["ticker"] for a in selected}
+        for asset in all_ranked:
+            if asset["ticker"] not in seen:
+                selected.append(asset)
+                seen.add(asset["ticker"])
+            if len(selected) >= 6:
+                break
+    selected = selected[:6]
+
+    equities_count = max(1, len(buy_recommendations["stocks"]))
+    bonds_count = max(1, len(buy_recommendations["bonds"]))
+    commodities_count = max(1, len(buy_recommendations["commodities"]))
+    eq_w = base["equities"] / equities_count
+    bd_w = base["bonds"] / bonds_count
+    cm_w = base["gold"] / commodities_count
+
+    target_weights: dict[str, float] = {}
+    for a in buy_recommendations["stocks"]:
+        target_weights[a["ticker"]] = round(eq_w, 4)
+    for a in buy_recommendations["bonds"]:
+        target_weights[a["ticker"]] = round(bd_w, 4)
+    for a in buy_recommendations["commodities"]:
+        target_weights[a["ticker"]] = round(cm_w, 4)
+
+    # Normalize to exactly 1 in case of rounding.
+    tw_total = sum(target_weights.values())
+    if tw_total > 0:
+        target_weights = {k: round(v / tw_total, 4) for k, v in target_weights.items()}
+
+    model_portfolio = []
+    for a in selected:
+        model_portfolio.append(
+            {
+                "ticker": a["ticker"],
+                "sharpe": a["sharpe"],
+                "target_weight": target_weights.get(a["ticker"], 0.0),
+            }
+        )
+
+    return {
+        "regime": regime,
+        "risk_tolerance": risk,
+        "bucket_weights": {
+            "equities": round(base["equities"], 4),
+            "bonds": round(base["bonds"], 4),
+            "commodities": round(base["gold"], 4),
+        },
+        "buy_recommendations": buy_recommendations,
+        "model_portfolio": model_portfolio,
+    }
