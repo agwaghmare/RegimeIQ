@@ -15,11 +15,31 @@ Key design decisions:
 import os
 import pandas as pd
 import numpy as np
+from pandas.tseries.offsets import BDay
+
+from services.macro_service import fetch_macro_data
+from services.market_service import fetch_market_data
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MACRO_CSV = os.path.join(BASE_DIR, "data", "macroData", "macro_data.csv")
 MARKET_CSV = os.path.join(BASE_DIR, "data", "marketData", "market_raw.csv")
 MASTER_CSV = os.path.join(BASE_DIR, "data", "master_dataset.csv")
+
+
+def _expected_latest_market_day() -> pd.Timestamp:
+    """
+    Return the most recent business day that should reasonably exist in market data.
+    Using previous business day avoids false stale alarms on intraday requests.
+    """
+    return (pd.Timestamp.today().normalize() - BDay(1)).normalize()
+
+
+def _is_dataset_stale(df: pd.DataFrame) -> bool:
+    """Detect whether cached master data is stale vs expected market freshness."""
+    if df.empty:
+        return True
+    last_dt = pd.Timestamp(df.index.max()).normalize()
+    return last_dt < _expected_latest_market_day()
 
 
 # ── loaders ──────────────────────────────────────────────────────────
@@ -37,6 +57,8 @@ def _load_market() -> pd.DataFrame:
     df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=True)
     df.index.name = "Date"
     df = df.sort_index()
+    # yfinance concat / CSV round-trips can introduce duplicate column names; keep first.
+    df = df.loc[:, ~df.columns.duplicated(keep="first")]
     return df
 
 
@@ -97,7 +119,9 @@ def build_master_dataset(save: bool = True) -> pd.DataFrame:
     macro_daily = macro.reindex(market.index, method="ffill")
 
     # Step 4: inner join (only dates where both exist)
-    master = market.join(macro_daily, how="inner")
+    # rsuffix avoids silent duplicate names (e.g. rare macro/market key clashes).
+    master = market.join(macro_daily, how="inner", rsuffix="_macro")
+    master = master.loc[:, ~master.columns.duplicated(keep="first")]
 
     # Step 5: drop rows where critical columns are NaN
     critical_cols = ["sp500", "vix", "unemployment", "cpi_yoy",
@@ -127,6 +151,7 @@ def get_master_dataset() -> pd.DataFrame:
     if os.path.exists(MASTER_CSV):
         df = pd.read_csv(MASTER_CSV, index_col=0, parse_dates=True)
         df.index.name = "Date"
+        df = df.loc[:, ~df.columns.duplicated(keep="first")]
 
         # Hygiene guard: historical bad caches may store non-PMI values
         # (e.g. ~12,000 manufacturing employment) under pmi_ism.
@@ -136,7 +161,59 @@ def get_master_dataset() -> pd.DataFrame:
             if invalid.any():
                 df.loc[invalid, "pmi_ism"] = np.nan
 
-        return df
+        # Corrupt cache: misaligned columns (e.g. VIX/VVIX swapped, SPX ~100).
+        try:
+            last_sp = float(pd.to_numeric(df["sp500"], errors="coerce").iloc[-1])
+            last_vix = float(pd.to_numeric(df["vix"], errors="coerce").iloc[-1])
+            last_vvix = (
+                float(pd.to_numeric(df["vvix"], errors="coerce").iloc[-1])
+                if "vvix" in df.columns
+                else np.nan
+            )
+            vix_vvix_swapped = (
+                last_vix > 85
+                and not np.isnan(last_vvix)
+                and last_vvix < 65
+                and last_vvix > 5
+            )
+            if last_sp < 500 or vix_vvix_swapped:
+                print(
+                    "[merge] Master cache failed sanity check (e.g. bad VIX/VVIX or SPX). "
+                    "Rebuilding from on-disk market/macro CSVs..."
+                )
+                try:
+                    return build_master_dataset(save=True)
+                except Exception as e1:
+                    print(f"[merge] Rebuild from CSV failed: {e1}. Trying full data refresh...")
+                    try:
+                        fetch_macro_data()
+                        fetch_market_data()
+                        return build_master_dataset(save=True)
+                    except Exception as e2:
+                        print(f"[merge] Full refresh failed: {e2}")
+        except Exception:
+            pass
+
+        if not _is_dataset_stale(df):
+            return df
+
+        print(
+            f"[merge] Cached dataset stale (last={pd.Timestamp(df.index.max()).date()}). "
+            "Refreshing macro + market sources..."
+        )
+        try:
+            fetch_macro_data()
+            fetch_market_data()
+            refreshed = build_master_dataset(save=True)
+            print(
+                f"[merge] Refresh complete. New last date: "
+                f"{pd.Timestamp(refreshed.index.max()).date()}"
+            )
+            return refreshed
+        except Exception as e:
+            # Graceful fallback so API remains available even if data vendors fail.
+            print(f"[merge] Refresh failed, serving stale cache: {e}")
+            return df
     return build_master_dataset()
 
 

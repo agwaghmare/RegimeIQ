@@ -1,4 +1,12 @@
-import type { RegimeData, MetricRow, Trend, Status } from '../types/regime'
+import type {
+  RegimeData,
+  MetricRow,
+  Trend,
+  Status,
+  NewsPayload,
+  RiskTolerance,
+  RebalancePlan,
+} from '../types/regime'
 
 /** In dev, use Vite proxy to avoid CORS and port issues. Set VITE_API_URL for production. */
 const BASE_URL =
@@ -266,6 +274,15 @@ export const api = {
   },
   getRiskLab: async (): Promise<RiskLabResponse> => {
     return getJson<RiskLabResponse>('/regime/risk-lab')
+  },
+  getNews: async (topics: string[] = []): Promise<NewsPayload> => {
+    const q = topics.length > 0 ? `?topics=${encodeURIComponent(topics.join(','))}` : ''
+    return getJson<NewsPayload>(`/news/${q}`)
+  },
+  getRebalancePlan: async (riskTolerance: RiskTolerance): Promise<RebalancePlan> => {
+    return getJson<RebalancePlan>(
+      `/allocation/rebalance-plan?risk_tolerance=${encodeURIComponent(riskTolerance)}`
+    )
   },
   getSnapshot: async (date: string): Promise<RegimeData> => {
     const raw = await getJson<RegimeApiResponse>(`/regime/snapshot?date=${encodeURIComponent(date)}`)

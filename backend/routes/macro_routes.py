@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services.macro_service import fetch_macro_data
+from services.macro_service import get_macro_cached
 from services.data_merge_service import get_master_dataset
 import pandas as pd
 
@@ -7,7 +7,7 @@ router = APIRouter()
 
 @router.get("/")
 def get_macro_data():
-    df = fetch_macro_data()
+    df = get_macro_cached()
 
     result = df.tail(10).reset_index()
 

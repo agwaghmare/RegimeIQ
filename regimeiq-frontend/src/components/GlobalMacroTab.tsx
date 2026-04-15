@@ -18,6 +18,20 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
+function dirLabel(v: number | null | undefined, threshold = 0.05): 'Up' | 'Down' | 'Stable' | 'Unknown' {
+  if (v === null || v === undefined || !Number.isFinite(v)) return 'Unknown'
+  if (v > threshold) return 'Up'
+  if (v < -threshold) return 'Down'
+  return 'Stable'
+}
+
+function dirClass(label: ReturnType<typeof dirLabel>): string {
+  if (label === 'Up') return 'text-slate-200 bg-slate-500/20 border-slate-400/40'
+  if (label === 'Down') return 'text-slate-300 bg-slate-700/30 border-slate-600/50'
+  if (label === 'Stable') return 'text-zinc-200 bg-zinc-600/20 border-zinc-400/30'
+  return 'text-on-surface-variant bg-surface-container-high border-outline-variant/20'
+}
+
 function sparklinePoints(value: number | null | undefined): string {
   const safe = Number.isFinite(value) ? Number(value) : 0
   const n = 6
@@ -136,24 +150,122 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
     return parsed.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
   }
 
+  const macroNarrative = useMemo(() => {
+    const cpi = globalMacro.cpi_yoy ?? 0
+    const real = globalMacro.real_rate_10y ?? 0
+    const dxy = globalMacro.dxy_3m_pct_change ?? 0
+    const hold = fedwatch.next_3m.hold
+    const tone =
+      cpi > 3 || real > 1.5
+        ? 'policy remains restrictive and financing conditions are still tight'
+        : 'price pressure is moderating and policy constraints are easing'
+    const dollar =
+      dxy > 0.02
+        ? 'Dollar strength is adding global tightening pressure.'
+        : dxy < -0.02
+          ? 'Dollar softness is reducing external stress.'
+          : 'Dollar conditions are broadly balanced.'
+    return `Macro regime read: ${tone} Fed pricing is ${Math.round(hold * 100)}% hold-dominant over the next 3 months. ${dollar}`
+  }, [fedwatch.next_3m.hold, globalMacro.cpi_yoy, globalMacro.dxy_3m_pct_change, globalMacro.real_rate_10y])
+
+  const directionalMetrics = useMemo(() => [
+    { name: 'Fed policy impulse (3M)', value: globalMacro.fed_funds_3m_change, direction: dirLabel(globalMacro.fed_funds_3m_change, 0.02) },
+    { name: 'US Real 10Y', value: globalMacro.real_rate_10y, direction: dirLabel(globalMacro.real_rate_10y, 0.05) },
+    { name: 'US CPI YoY', value: globalMacro.cpi_yoy, direction: dirLabel((globalMacro.cpi_yoy ?? 0) - 2.5, 0.1) },
+    { name: 'DXY 3M change', value: globalMacro.dxy_3m_pct_change, direction: dirLabel(globalMacro.dxy_3m_pct_change, 0.01) },
+  ], [globalMacro.cpi_yoy, globalMacro.dxy_3m_pct_change, globalMacro.fed_funds_3m_change, globalMacro.real_rate_10y])
+
+  const macroDrivers = useMemo(() => {
+    const drivers: string[] = []
+    if ((globalMacro.real_rate_10y ?? 0) > 1.5) drivers.push('High real rates keep valuation multiples under pressure.')
+    if ((globalMacro.cpi_yoy ?? 0) > 3) drivers.push('Inflation is still above comfort, limiting easing flexibility.')
+    if ((globalMacro.dxy_3m_pct_change ?? 0) > 0.02) drivers.push('Stronger dollar tightens global liquidity conditions.')
+    if (fedwatch.next_3m.hold > 0.5) drivers.push('Markets still expect a hold-heavy policy path.')
+    if ((globalMacro.boj_10y_yield ?? 0) > 1 || (globalMacro.ecb_policy_rate ?? 0) > 3) drivers.push('Global policy divergence is reshaping cross-asset flows.')
+    if (drivers.length === 0) drivers.push('Macro inputs are balanced, with no single dominant stress driver.')
+    return drivers.slice(0, 5)
+  }, [fedwatch.next_3m.hold, globalMacro.boj_10y_yield, globalMacro.cpi_yoy, globalMacro.dxy_3m_pct_change, globalMacro.ecb_policy_rate, globalMacro.real_rate_10y])
+
+  const bankDivergence = useMemo(() => {
+    const fedProxy = globalMacro.fed_funds_3m_change ?? 0
+    const ecb = globalMacro.ecb_policy_rate ?? 0
+    const boj = globalMacro.boj_10y_yield ?? 0
+    const maxAbs = Math.max(Math.abs(fedProxy), Math.abs(ecb), Math.abs(boj), 0.1)
+    return [
+      { name: 'Federal Reserve', value: fedProxy, stance: fedProxy > 0.05 ? 'Tightening bias' : fedProxy < -0.05 ? 'Easing bias' : 'Hold bias', w: Math.abs(fedProxy) / maxAbs },
+      { name: 'ECB', value: ecb, stance: ecb > 2.5 ? 'Restrictive' : 'Balanced', w: Math.abs(ecb) / maxAbs },
+      { name: 'BoJ', value: boj, stance: boj > 0.75 ? 'Normalizing' : 'Accommodative', w: Math.abs(boj) / maxAbs },
+    ]
+  }, [globalMacro.boj_10y_yield, globalMacro.ecb_policy_rate, globalMacro.fed_funds_3m_change])
+
+  const regimeCatalysts = useMemo(() => {
+    const catalysts = [
+      'Unexpected CPI downside surprise could accelerate easing expectations.',
+      'Credit spread re-widening would raise recession probability quickly.',
+      'Sharp dollar reversal could reprice global risk appetite.',
+      'Labor market inflection could flip growth signals.',
+      'Central bank communication shocks may force rapid rate-path repricing.',
+    ]
+    return catalysts.slice(0, 5)
+  }, [])
+
+  const heatmap = useMemo(() => {
+    const inflation = clamp(((globalMacro.cpi_yoy ?? 2) / 5) * 100, 0, 100)
+    const growth = clamp(55 - (globalMacro.real_rate_10y ?? 0) * 12, 0, 100)
+    const liquidity = clamp(50 - (globalMacro.dxy_3m_pct_change ?? 0) * 700, 0, 100)
+    const volatility = clamp(30 + ((1 - fedwatch.next_3m.hold) * 40), 0, 100)
+    return [
+      { name: 'Inflation', score: inflation },
+      { name: 'Growth', score: growth },
+      { name: 'Liquidity', score: liquidity },
+      { name: 'Volatility', score: volatility },
+    ]
+  }, [fedwatch.next_3m.hold, globalMacro.cpi_yoy, globalMacro.dxy_3m_pct_change, globalMacro.real_rate_10y])
+
+  const realVsEquities = useMemo(() => {
+    const s = history?.series?.us_real_10y
+    if (!s?.yield || !s?.price || s.yield.length < 3 || s.price.length < 3) return []
+    const len = Math.min(s.yield.length, s.price.length)
+    return Array.from({ length: len }).map((_, i) => ({
+      x: s.yield[i] ?? 0,
+      y: s.price[i] ?? 0,
+      i,
+    }))
+  }, [history?.series?.us_real_10y])
+
   return (
     <section className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6">
-      <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+      <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 space-y-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Global Macro</h2>
           <span className="text-[10px] uppercase text-on-surface-variant">Updated: {updatedAt}</span>
+        </div>
+        <div className="rounded-xl border border-primary/20 bg-primary/10 p-4">
+          <div className="text-[11px] uppercase tracking-widest text-primary mb-2">Macro Narrative</div>
+          <div className="text-sm leading-relaxed text-on-surface">{macroNarrative}</div>
         </div>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <button onClick={() => setTab('charts')} className={`px-3 py-1 rounded text-xs ${tab === 'charts' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>Market Charts</button>
           <button onClick={() => setTab('calendar')} className={`px-3 py-1 rounded text-xs ${tab === 'calendar' ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>Release Calendar</button>
         </div>
-        <div className="mb-4 bg-surface-container-low rounded-lg p-3">
+        <div className="mb-2 bg-surface-container-low rounded-lg p-3">
           <div className="text-xs text-on-surface-variant mb-2">FedWatch-style next 3M probabilities</div>
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div className="rounded bg-surface-container-high p-2"><div className="text-on-surface-variant">Cut</div><div className="font-bold">{Math.round(fedwatch.next_3m.cut * 100)}%</div></div>
             <div className="rounded bg-surface-container-high p-2"><div className="text-on-surface-variant">Hold</div><div className="font-bold">{Math.round(fedwatch.next_3m.hold * 100)}%</div></div>
             <div className="rounded bg-surface-container-high p-2"><div className="text-on-surface-variant">Hike</div><div className="font-bold">{Math.round(fedwatch.next_3m.hike * 100)}%</div></div>
           </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {directionalMetrics.map((m) => (
+            <div key={m.name} className="rounded-lg bg-surface-container-low border border-outline-variant/20 p-3">
+              <div className="text-[11px] text-on-surface-variant">{m.name}</div>
+              <div className="mt-1 text-lg font-bold">{f(m.value)}</div>
+              <span className={`inline-block mt-2 px-2 py-0.5 text-[11px] border rounded-full ${dirClass(m.direction)}`}>
+                {m.direction}
+              </span>
+            </div>
+          ))}
         </div>
         {tab === 'charts' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -182,8 +294,9 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
 
       {tab === 'charts' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Rates Snapshot</h3>
+        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Yield Curve Visualization</h3>
+          <div className="text-[11px] text-on-surface-variant">Cross-market yield shape and relative steepness.</div>
           <div className="space-y-3">
             {rateBars.map((row) => (
               <div key={row.label} className="space-y-1">
@@ -202,27 +315,72 @@ export function GlobalMacroTab({ updatedAt, globalMacro, fedwatch, releaseCalend
           </div>
         </div>
 
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Macro Pressure Gauge</h3>
-          <div className="space-y-3">
-            <div className="text-xs text-on-surface-variant">Composite from CPI, real rates, dollar and global policy yields</div>
-            <div className="h-3 w-full rounded-full bg-surface-container-highest overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary via-[#f59e0b] to-error"
-                style={{
-                  width: `${clamp((((globalMacro.cpi_yoy ?? 0) + (globalMacro.real_rate_10y ?? 0) + (globalMacro.dxy_3m_pct_change ?? 0) * 20) / 10) * 100, 0, 100)}%`,
-                }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-[11px] text-on-surface-variant">
-              <span>Low</span>
-              <span>Moderate</span>
-              <span>High</span>
-            </div>
+        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Real Rates vs Equities</h3>
+          <div className="text-[11px] text-on-surface-variant">Higher real yields typically pressure equity valuations.</div>
+          <div className="rounded bg-surface-container-low p-3">
+            <svg viewBox="0 0 380 180" className="w-full h-44">
+              <line x1="30" y1="150" x2="350" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
+              <line x1="30" y1="20" x2="30" y2="150" className="stroke-outline-variant/40" strokeWidth="1" />
+              {realVsEquities.map((pt) => {
+                const x = 30 + clamp(((pt.x + 2) / 6) * 320, 0, 320)
+                const y = 150 - clamp(((pt.y - 60) / 80) * 130, 0, 130)
+                return <circle key={`rvse-${pt.i}`} cx={x} cy={y} r="2.2" className="fill-primary/80" />
+              })}
+            </svg>
+            <div className="mt-1 text-[10px] text-on-surface-variant">X-axis: real yield, Y-axis: equity proxy index.</div>
           </div>
         </div>
       </div>
       )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-1 bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Key Macro Drivers</h3>
+          <div className="space-y-2 text-xs">
+            {macroDrivers.map((d) => (
+              <div key={d} className="rounded border border-outline-variant/20 bg-surface-container-low px-3 py-2">+ {d}</div>
+            ))}
+          </div>
+        </div>
+        <div className="xl:col-span-1 bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Central Bank Divergence</h3>
+          <div className="space-y-3">
+            {bankDivergence.map((b) => (
+              <div key={b.name}>
+                <div className="flex justify-between text-xs mb-1"><span>{b.name}</span><span>{b.stance}</span></div>
+                <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: `${clamp(b.w * 100, 5, 100)}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="xl:col-span-1 bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Macro Heatmap</h3>
+          <div className="space-y-2">
+            {heatmap.map((h) => (
+              <div key={h.name}>
+                <div className="flex justify-between text-xs mb-1"><span>{h.name}</span><span>{Math.round(h.score)}</span></div>
+                <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
+                  <div className="h-full bg-primary/85" style={{ width: `${h.score}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">What Could Change the Regime</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          {regimeCatalysts.map((c) => (
+            <div key={c} className="rounded border border-outline-variant/20 bg-surface-container-low px-3 py-2">
+              {c}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {tab === 'charts' && (
       <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">

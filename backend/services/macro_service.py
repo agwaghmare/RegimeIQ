@@ -108,3 +108,15 @@ def fetch_macro_data(start="2005-01-01"):
     print(f"[macro] clean CSV saved -> {csv_path} - {len(df)} rows")
 
     return df
+
+
+# ── in-memory cache (one fetch per server run) ──────────────────────
+
+_macro_cache: dict = {"df": None}
+
+
+def get_macro_cached() -> pd.DataFrame:
+    """Return cached macro DataFrame; fetch from FRED on first call."""
+    if _macro_cache["df"] is None:
+        _macro_cache["df"] = fetch_macro_data()
+    return _macro_cache["df"]
