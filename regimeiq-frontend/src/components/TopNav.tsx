@@ -3,6 +3,8 @@ interface Props {
   probability: number
   isLive?: boolean
   dataDate?: string | null
+  activeView?: string
+  onSelectView?: (view: 'dashboard' | 'forecast') => void
 }
 
 function formatDataDate(dataDate: string | null | undefined): string {
@@ -14,14 +16,32 @@ function formatDataDate(dataDate: string | null | undefined): string {
   return `Data as of ${dataDate}`
 }
 
-export function TopNav({ regime, probability, isLive = false, dataDate = null }: Props) {
+export function TopNav({ regime, probability, isLive = false, dataDate = null, activeView = 'dashboard', onSelectView }: Props) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0e0e10] flex justify-between items-center w-full px-6 py-3 max-w-[1920px] mx-auto font-['Inter'] tabular-nums text-sm antialiased">
       <div className="flex items-center gap-8">
         <span className="text-lg font-bold tracking-tighter text-[#e7e4ec]">RegimeIQ</span>
         <nav className="hidden md:flex gap-6">
-          <a className="text-[#d7dce3] border-b-2 border-[#c3c9d1] pb-1 font-semibold" href="#">Current</a>
-          <a className="text-[#9aa2ac] hover:text-[#eceff3] transition-colors" href="#">Forecast</a>
+          <button
+            onClick={() => onSelectView?.('dashboard')}
+            className={`pb-1 font-semibold transition-colors ${
+              activeView === 'dashboard'
+                ? 'text-[#d7dce3] border-b-2 border-[#c3c9d1]'
+                : 'text-[#9aa2ac] hover:text-[#eceff3]'
+            }`}
+          >
+            Current
+          </button>
+          <button
+            onClick={() => onSelectView?.('forecast')}
+            className={`pb-1 font-semibold transition-colors ${
+              activeView === 'forecast'
+                ? 'text-[#d7dce3] border-b-2 border-[#c3c9d1]'
+                : 'text-[#9aa2ac] hover:text-[#eceff3]'
+            }`}
+          >
+            Forecast
+          </button>
         </nav>
       </div>
       <div className="flex items-center gap-4">

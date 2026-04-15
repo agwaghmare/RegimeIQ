@@ -117,6 +117,20 @@ export interface RiskLabResponse {
   risk_drivers: string[]
 }
 
+export interface ForecastResponse {
+  transition_matrix: Record<string, Record<string, number>>
+  projected_regimes: {
+    t1m: Record<string, number>
+    t3m: Record<string, number>
+    t6m: Record<string, number>
+  }
+  score_trajectory: Array<{ date: string; total_score: number; regime: string }>
+  signal_momentum: Record<string, { value: number; change_3m: number; direction: 'up' | 'down' | 'flat' }>
+  current_streak: { regime: string; start_date: string; days: number }
+  avg_duration_days: Record<string, number>
+  score_forecast?: Array<{ date: string; predicted_score: number; lo: number; hi: number }>
+}
+
 function scaleToFour(s: { score: number; max: number }): number {
   if (!s.max) return 0
   return Math.floor((s.score / s.max) * 4)
@@ -274,6 +288,9 @@ export const api = {
   },
   getRiskLab: async (): Promise<RiskLabResponse> => {
     return getJson<RiskLabResponse>('/regime/risk-lab')
+  },
+  getForecast: async (): Promise<ForecastResponse> => {
+    return getJson<ForecastResponse>('/regime/forecast')
   },
   getNews: async (topics: string[] = []): Promise<NewsPayload> => {
     const q = topics.length > 0 ? `?topics=${encodeURIComponent(topics.join(','))}` : ''

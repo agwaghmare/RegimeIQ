@@ -14,6 +14,7 @@ import { PlaybookTab } from './components/PlaybookTab'
 import { SettingsTab } from './components/SettingsTab'
 import { HistoricalTab } from './components/HistoricalTab'
 import { PortfolioTab } from './components/PortfolioTab'
+import { ForecastTab } from './components/ForecastTab'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -123,7 +124,7 @@ export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
   const [activeView, setActiveView] = useState<
-    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio'
+    'dashboard' | 'forecast' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio'
   >('dashboard')
 
   useEffect(() => {
@@ -214,10 +215,12 @@ export default function App() {
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
-      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} />
+      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} activeView={activeView === 'dashboard' ? 'dashboard' : activeView === 'forecast' ? 'forecast' : 'dashboard'} onSelectView={(view) => setActiveView(view)} />
       <SideNav activeView={activeView} onSelectView={setActiveView} onExport={handleExport} />
 
-      {activeView === 'globalMacro' ? (
+      {activeView === 'forecast' ? (
+        <ForecastTab regime={data.regime} fedwatch={data.fedwatch} releaseCalendar={data.macro_release_calendar} />
+      ) : activeView === 'globalMacro' ? (
         <GlobalMacroTab
           updatedAt={data.updated_at}
           globalMacro={data.global_macro}

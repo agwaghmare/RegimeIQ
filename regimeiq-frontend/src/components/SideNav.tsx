@@ -17,8 +17,8 @@ const navItems: NavItem[] = [
 ]
 
 interface Props {
-  activeView: NavItem['key']
-  onSelectView: (view: NavItem['key']) => void
+  activeView: NavItem['key'] | 'forecast' | 'dashboard'
+  onSelectView: (view: NavItem['key'] | 'forecast') => void
   onExport: () => Promise<void>
 }
 
@@ -56,7 +56,7 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
                 isActive
                   ? 'bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c3c9d1] ring-1 ring-primary/30'
                   : spotlight
-                    ? 'text-[#c9ced6] border border-primary/20 hover:bg-[#19191d] hover:text-[#eceff3]'
+                    ? 'text-[#c9ced6] hover:bg-[#19191d] hover:text-[#eceff3]'
                     : 'text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
               }`}
             >

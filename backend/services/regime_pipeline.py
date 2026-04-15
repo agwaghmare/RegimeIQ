@@ -225,6 +225,232 @@ def run_summary_pipeline() -> dict:
     return get_regime_summary(df)
 
 
+# ─── ML score trajectory forecast ────────────────────────────────────
+
+def _compute_score_forecast() -> list:
+    """
+    Train a Ridge AR model on full monthly history and return
+    T+1M, T+2M, T+3M score predictions with ±1-sigma confidence bounds.
+
+    Features: AR lags at 1, 2, 3, 6, 12 months + one-hot regime (9 features).
+    Returns list of 3 dicts: [{date, predicted_score, lo, hi}, ...]
+    """
+    from sklearn.linear_model import Ridge
+    import numpy as np
+
+    LAGS = [1, 2, 3, 6, 12]
+    REGIMES = ["Risk-On", "Neutral", "Risk-Off", "Crisis"]
+
+    df = _get_historical_df()
+    monthly = df.resample("ME").last().dropna(subset=["total_score", "regime"])
+    scores = monthly["total_score"].astype(float)
+    regimes = monthly["regime"]
+
+    if len(scores) < max(LAGS) + 5:
+        return []
+
+    rows, targets = [], []
+    for i in range(max(LAGS), len(scores)):
+        feature_row = [float(scores.iloc[i - lag]) for lag in LAGS]
+        current_regime = regimes.iloc[i]
+        feature_row += [1.0 if current_regime == r else 0.0 for r in REGIMES]
+        rows.append(feature_row)
+        targets.append(float(scores.iloc[i]))
+
+    X, y = np.array(rows), np.array(targets)
+    model = Ridge(alpha=1.0)
+    model.fit(X, y)
+    sigma = float(np.std(y - model.predict(X)))
+
+    last_date = monthly.index[-1]
+    current_history = list(scores.values)
+    current_regime_label = regimes.iloc[-1]
+    predictions = []
+
+    for step in range(1, 4):
+        n = len(current_history)
+        feature_row = [current_history[n - lag] for lag in LAGS]
+        feature_row += [1.0 if current_regime_label == r else 0.0 for r in REGIMES]
+        pred = float(np.clip(model.predict(np.array([feature_row]))[0], 0.0, 10.0))
+        forecast_date = last_date + pd.DateOffset(months=step)
+        predictions.append({
+            "date": str(forecast_date.date()),
+            "predicted_score": round(pred, 2),
+            "lo": round(float(np.clip(pred - sigma, 0.0, 10.0)), 2),
+            "hi": round(float(np.clip(pred + sigma, 0.0, 10.0)), 2),
+        })
+        current_history.append(pred)
+
+    return predictions
+
+
+# ─── forecast pipeline ───────────────────────────────────────────────
+
+def run_forecast_pipeline() -> dict:
+    """
+    Derive forward-looking regime probabilities from Markov chain analysis.
+
+    Returns:
+      - transition_matrix: historical regime transition probabilities
+      - projected_regimes: regime probability vectors at T+1M, T+3M, T+6M
+      - score_trajectory: last 36 monthly data points
+      - signal_momentum: 6 key continuous signal values + 3M direction
+      - current_streak: current regime streak info
+      - avg_duration_days: average duration per regime
+    """
+    REGIMES = ["Risk-On", "Neutral", "Risk-Off", "Crisis"]
+
+    df = _get_historical_df()
+
+    # ── 1. Markov transition matrix from monthly-sampled history ─────
+    monthly = df.resample("ME").last().dropna(subset=["regime"])
+    today = pd.Timestamp(datetime.now().date())
+    monthly_past = monthly[monthly.index <= today]
+    regimes_seq = monthly_past["regime"].tolist()
+
+    counts: dict[str, dict[str, float]] = {r: {r2: 0.0 for r2 in REGIMES} for r in REGIMES}
+    for i in range(len(regimes_seq) - 1):
+        from_r = regimes_seq[i]
+        to_r = regimes_seq[i + 1]
+        if from_r in counts and to_r in counts[from_r]:
+            counts[from_r][to_r] += 1
+
+    transition_matrix: dict[str, dict[str, float]] = {}
+    for from_r, to_counts in counts.items():
+        total = sum(to_counts.values())
+        if total > 0:
+            transition_matrix[from_r] = {to_r: round(c / total, 4) for to_r, c in to_counts.items()}
+        else:
+            # Uniform fallback if no transitions observed
+            transition_matrix[from_r] = {to_r: round(1 / len(REGIMES), 4) for to_r in REGIMES}
+
+    # ── 2. Matrix multiplication helper ─────────────────────────────
+    def mat_vec(mat: dict, vec: dict) -> dict:
+        """Multiply transition matrix by probability vector."""
+        result = {r: 0.0 for r in REGIMES}
+        for to_r in REGIMES:
+            for from_r in REGIMES:
+                result[to_r] += mat.get(from_r, {}).get(to_r, 0.0) * vec.get(from_r, 0.0)
+        return result
+
+    def mat_pow_vec(mat: dict, vec: dict, steps: int) -> dict:
+        v = vec.copy()
+        for _ in range(steps):
+            v = mat_vec(mat, v)
+        return {k: round(v, 4) for k, v in v.items()}
+
+    # ── 3. Current regime as start vector ────────────────────────────
+    current_regime = regimes_seq[-1] if regimes_seq else "Neutral"
+    start_vec = {r: (1.0 if r == current_regime else 0.0) for r in REGIMES}
+
+    projected_regimes = {
+        "t1m": mat_pow_vec(transition_matrix, start_vec, 1),
+        "t3m": mat_pow_vec(transition_matrix, start_vec, 3),
+        "t6m": mat_pow_vec(transition_matrix, start_vec, 6),
+    }
+
+    # ── 4. Score trajectory — last 36 monthly points (up to today) ───
+    traj_df = monthly_past.tail(36)
+    score_trajectory = [
+        {
+            "date": str(pd.Timestamp(date).date()),
+            "total_score": round(float(row["total_score"]), 2),
+            "regime": row["regime"],
+        }
+        for date, row in traj_df.iterrows()
+    ]
+
+    # ── 5. Signal momentum from latest signals ───────────────────────
+    try:
+        master = get_master_dataset()
+        signals = compute_signals_latest(master)
+
+        def _sig(category: str, key: str):
+            return signals.get(category, {}).get(key)
+
+        def _momentum(val, change_3m) -> dict:
+            v = _safe_num(val) if val is not None else None
+            c = _safe_num(change_3m) if change_3m is not None else None
+            if v is None:
+                v = 0.0
+            if c is None:
+                c = 0.0
+            direction = "up" if c > 0.01 else ("down" if c < -0.01 else "flat")
+            return {"value": round(v, 4), "change_3m": round(c, 4), "direction": direction}
+
+        signal_momentum = {
+            "vix_level": _momentum(
+                _sig("market", "vix_level"),
+                _sig("market", "vix_1m_change"),
+            ),
+            "credit_spread": _momentum(
+                _sig("financial", "credit_spread"),
+                _sig("financial", "credit_spread_3m_change"),
+            ),
+            "cpi_yoy": _momentum(
+                _sig("inflation", "cpi_yoy"),
+                _sig("inflation", "cpi_3m_change"),
+            ),
+            "yield_spread": _momentum(
+                _sig("growth", "yield_spread"),
+                _sig("growth", "nominal_10y_3m_change"),
+            ),
+            "sp500_drawdown": _momentum(
+                _sig("market", "sp500_drawdown"),
+                _sig("market", "sp500_6m_momentum"),
+            ),
+            "fed_funds_3m_change": _momentum(
+                _sig("financial", "fed_funds_3m_change"),
+                _sig("financial", "fed_funds_3m_change"),
+            ),
+        }
+    except Exception:
+        signal_momentum = {
+            k: {"value": 0.0, "change_3m": 0.0, "direction": "flat"}
+            for k in ["vix_level", "credit_spread", "cpi_yoy", "yield_spread", "sp500_drawdown", "fed_funds_3m_change"]
+        }
+
+    # ── 6. Current streak ────────────────────────────────────────────
+    streak_days = 0
+    streak_start = str(pd.Timestamp(monthly_past.index[-1]).date()) if len(monthly_past) > 0 else str(datetime.now().date())
+    try:
+        transitions_list = monthly_past["regime"].tolist()
+        last_change_idx = 0
+        for i in range(len(transitions_list) - 2, -1, -1):
+            if transitions_list[i] != current_regime:
+                last_change_idx = i + 1
+                break
+        streak_start = str(pd.Timestamp(monthly_past.index[last_change_idx]).date())
+        streak_days = max(0, (datetime.now().date() - pd.Timestamp(streak_start).date()).days)
+    except Exception:
+        streak_days = 0
+
+    current_streak = {
+        "regime": current_regime,
+        "start_date": streak_start,
+        "days": streak_days,
+    }
+
+    # ── 7. Average duration per regime ───────────────────────────────
+    summary = get_regime_summary(df)
+    avg_duration_days = summary.get("avg_duration_days", {r: 90 for r in REGIMES})
+
+    try:
+        score_forecast = _compute_score_forecast()
+    except Exception:
+        score_forecast = []
+
+    return {
+        "transition_matrix": transition_matrix,
+        "projected_regimes": projected_regimes,
+        "score_trajectory": score_trajectory,
+        "signal_momentum": signal_momentum,
+        "current_streak": current_streak,
+        "avg_duration_days": avg_duration_days,
+        "score_forecast": score_forecast,
+    }
+
+
 # ─── CLI ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

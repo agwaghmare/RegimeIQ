@@ -10,6 +10,7 @@ from services.regime_pipeline import (
     run_current_pipeline,
     run_historical_pipeline,
     run_summary_pipeline,
+    run_forecast_pipeline,
     _get_historical_df,
 )
 from services.regime_snapshot_service import get_regime_snapshot
@@ -47,6 +48,14 @@ def get_regime_dashboard():
 )
 def get_current_regime():
     return run_current_pipeline()
+
+
+@router.get(
+    "/forecast",
+    summary="Regime forecast and Markov transition probabilities",
+)
+def get_forecast():
+    return run_forecast_pipeline()
 
 
 @router.get(
