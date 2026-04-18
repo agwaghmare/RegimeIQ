@@ -1,31 +1,41 @@
 import { useState } from 'react'
+import { useUser } from '../context/UserContext'
+import { canAccess, type View } from '../lib/tierAccess'
+
+type NavKey = 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical' | 'forecast'
 
 type NavItem = {
   icon: string
   label: string
-  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'portfolio' | 'historical'
+  key: NavKey
 }
 
 const navItems: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
+  { icon: 'insights', label: 'Forecast', key: 'forecast' },
   { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
   { icon: 'strategy', label: 'Strategy Desk', key: 'playbook' },
   { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },
-  { icon: 'tune', label: 'Settings', key: 'settings' },
   { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
   { icon: 'history', label: 'Historical', key: 'historical' },
 ]
 
 interface Props {
-  activeView: NavItem['key'] | 'forecast' | 'dashboard'
-  onSelectView: (view: NavItem['key'] | 'forecast') => void
+  activeView: View
+  onSelectView: (view: NavKey) => void
   onExport: () => Promise<void>
 }
 
 export function SideNav({ activeView, onSelectView, onExport }: Props) {
+  const { user } = useUser()
   const [exporting, setExporting] = useState(false)
 
-  const handleClick = (key: NavItem['key']) => {
+  const handleClick = (key: NavKey, locked: boolean) => {
+    if (locked) {
+      onSelectView('dashboard')
+      // soft redirect — could toast "Upgrade to unlock" in a real app
+      return
+    }
     onSelectView(key)
   }
 
@@ -48,20 +58,27 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
         {navItems.map((item) => {
           const isActive = item.key === activeView
           const spotlight = item.key === 'playbook' || item.key === 'riskLab'
+          const locked = !canAccess(user.plan, item.key)
           return (
             <button
               key={item.label}
-              onClick={() => handleClick(item.key)}
-              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 cursor-pointer transition-transform duration-200 ease-in-out rounded ${
-                isActive
-                  ? 'bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c3c9d1] ring-1 ring-primary/30'
-                  : spotlight
-                    ? 'text-[#c9ced6] hover:bg-[#19191d] hover:text-[#eceff3]'
-                    : 'text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
+              onClick={() => handleClick(item.key, locked)}
+              title={locked ? 'Upgrade to Premium to unlock' : undefined}
+              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 transition-transform duration-200 ease-in-out rounded ${
+                locked
+                  ? 'text-[#5a5f66] cursor-not-allowed hover:bg-transparent'
+                  : isActive
+                    ? 'cursor-pointer bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c3c9d1] ring-1 ring-primary/30'
+                    : spotlight
+                      ? 'cursor-pointer text-[#c9ced6] hover:bg-[#19191d] hover:text-[#eceff3]'
+                      : 'cursor-pointer text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
               }`}
             >
               <span className="material-symbols-outlined text-lg">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {locked && (
+                <span className="material-symbols-outlined text-[14px] opacity-70">lock</span>
+              )}
             </button>
           )
         })}

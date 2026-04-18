@@ -1,10 +1,14 @@
+import { UserMenu } from './UserMenu'
+
+type TopNavView = 'dashboard' | 'forecast' | 'preferences' | 'account' | 'pricing'
+
 interface Props {
   regime: string
   probability: number
   isLive?: boolean
   dataDate?: string | null
   activeView?: string
-  onSelectView?: (view: 'dashboard' | 'forecast') => void
+  onSelectView?: (view: TopNavView) => void
 }
 
 function formatDataDate(dataDate: string | null | undefined): string {
@@ -62,7 +66,7 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null, a
         <div className="h-8 w-[1px] bg-outline-variant opacity-20 mx-2"></div>
         <div className="flex items-center gap-3 text-[#9aa2ac]">
           <span className="material-symbols-outlined cursor-pointer hover:text-white transition-all active:scale-95 duration-100">notifications</span>
-          <span className="material-symbols-outlined cursor-pointer hover:text-white transition-all active:scale-95 duration-100">account_circle</span>
+          <UserMenu onSelect={(v) => onSelectView?.(v)} />
         </div>
       </div>
     </header>

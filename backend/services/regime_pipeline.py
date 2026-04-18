@@ -360,6 +360,21 @@ def run_forecast_pipeline() -> dict:
         for date, row in traj_df.iterrows()
     ]
 
+    # Force the final point to equal the live dashboard score so the chart's
+    # rightmost node matches the headline number instead of last month-end.
+    if score_trajectory:
+        try:
+            live = run_current_pipeline()
+            live_score = live.get("total_score")
+            if isinstance(live_score, (int, float)) and live_score >= 0:
+                score_trajectory[-1] = {
+                    "date": str(datetime.now().date()),
+                    "total_score": round(float(live_score), 2),
+                    "regime": live.get("regime", score_trajectory[-1]["regime"]),
+                }
+        except Exception:
+            pass
+
     # ── 5. Signal momentum from latest signals ───────────────────────
     try:
         master = get_master_dataset()

@@ -32,7 +32,7 @@ function macroRelevant(article: { title: string; description?: string | null; so
   return keys.some((k) => text.includes(k))
 }
 
-export function SettingsTab() {
+export function UserPreferencesTab() {
   const [settings, setSettings] = useState<SettingsState>(() => {
     const base = loadUserSettings()
     return {

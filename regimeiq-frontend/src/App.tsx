@@ -11,10 +11,14 @@ import { TerminalFeed } from './components/TerminalFeed'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
 import { RiskLabTab } from './components/RiskLabTab'
 import { PlaybookTab } from './components/PlaybookTab'
-import { SettingsTab } from './components/SettingsTab'
+import { UserPreferencesTab } from './components/UserPreferencesTab'
 import { HistoricalTab } from './components/HistoricalTab'
 import { PortfolioTab } from './components/PortfolioTab'
 import { ForecastTab } from './components/ForecastTab'
+import { AccountTab } from './components/AccountTab'
+import { PricingTab } from './components/PricingTab'
+import { useUser } from './context/UserContext'
+import { canAccess, type View } from './lib/tierAccess'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -122,10 +126,13 @@ function trendArrow(t: MetricRow['trend']): string {
 
 export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
+  const { user } = useUser()
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
-  const [activeView, setActiveView] = useState<
-    'dashboard' | 'forecast' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio'
-  >('dashboard')
+  const [rawView, setRawView] = useState<View>('dashboard')
+  const activeView: View = canAccess(user.plan, rawView) ? rawView : 'dashboard'
+  const setActiveView = (v: View) => {
+    setRawView(canAccess(user.plan, v) ? v : 'dashboard')
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -215,7 +222,7 @@ export default function App() {
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
-      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} activeView={activeView === 'dashboard' ? 'dashboard' : activeView === 'forecast' ? 'forecast' : 'dashboard'} onSelectView={(view) => setActiveView(view)} />
+      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} activeView={activeView} onSelectView={(view) => setActiveView(view)} />
       <SideNav activeView={activeView} onSelectView={setActiveView} onExport={handleExport} />
 
       {activeView === 'forecast' ? (
@@ -236,8 +243,12 @@ export default function App() {
         />
       ) : activeView === 'riskLab' ? (
         <RiskLabTab />
-      ) : activeView === 'settings' ? (
-        <SettingsTab />
+      ) : activeView === 'preferences' ? (
+        <UserPreferencesTab />
+      ) : activeView === 'account' ? (
+        <AccountTab />
+      ) : activeView === 'pricing' ? (
+        <PricingTab />
       ) : activeView === 'historical' ? (
         <HistoricalTab />
       ) : activeView === 'portfolio' ? (
