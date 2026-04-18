@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BankaiTransitionProvider } from './components/BankaiTransition'
 import { useRegime } from './hooks/useRegime'
 import { api } from './lib/api'
+import { IntroScreen } from './components/IntroScreen'
 import { TopNav } from './components/TopNav'
 import { SideNav } from './components/SideNav'
 import { ScoreCards } from './components/ScoreCards'
@@ -130,6 +132,9 @@ export default function App() {
   const [activeView, setActiveView] = useState<
     'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio'
   >('dashboard')
+  const [showIntro, setShowIntro] = useState(() => {
+    return sessionStorage.getItem('regimeiq_intro_seen') !== 'true'
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -149,53 +154,26 @@ export default function App() {
     await api.downloadExport()
   }
 
-  if (loading) {
-    return (
-      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs text-on-surface-variant uppercase tracking-widest">Loading regime data…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !data) {
-    return (
-      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-sm">
-          <span className="material-symbols-outlined text-error text-4xl">error</span>
-          <p className="text-sm text-on-surface-variant">{error ?? 'No data available'}</p>
-          <button
-            onClick={refetch}
-            className="px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded hover:opacity-90 transition-all"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const hero = regimeStyle(data.regime)
-  const keySignals = topSignals(data)
-  const actions = suggestedActions(data.regime)
-  const contributionRows = [
-    { label: 'Growth', score: data.scores.growth, max: 4 },
-    { label: 'Inflation', score: data.scores.inflation, max: 4 },
-    { label: 'Financial', score: data.scores.financial_conditions, max: 4 },
-    { label: 'Market', score: data.scores.market_risk, max: 4 },
-  ]
-  const confidence = {
-    macro: Math.max(0, Math.min(100, Math.round((1 - ((data.scores.growth + data.scores.inflation + data.scores.financial_conditions) / 12)) * 100))),
+  const hero         = data ? regimeStyle(data.regime)    : { riskLevel: '', tone: '', glow: '' }
+  const keySignals   = data ? topSignals(data)             : []
+  const actions      = data ? suggestedActions(data.regime): []
+  const contributionRows = data ? [
+    { label: 'Growth',    score: data.scores.growth,                max: 4 },
+    { label: 'Inflation', score: data.scores.inflation,             max: 4 },
+    { label: 'Financial', score: data.scores.financial_conditions,  max: 4 },
+    { label: 'Market',    score: data.scores.market_risk,           max: 4 },
+  ] : []
+  const confidence = data ? {
+    macro:  Math.max(0, Math.min(100, Math.round((1 - ((data.scores.growth + data.scores.inflation + data.scores.financial_conditions) / 12)) * 100))),
     market: Math.max(0, Math.min(100, Math.round((1 - (data.scores.market_risk / 4)) * 100))),
-  }
-  const dashboardRisk = riskBucket(data.total_score)
+  } : { macro: 0, market: 0 }
+  const dashboardRisk = data ? riskBucket(data.total_score) : ''
   const timeline = useMemo(() => {
     const items = historicalInsights?.timeline ?? []
     return items.slice(-12)
   }, [historicalInsights])
   const changeItems = useMemo(() => {
+    if (!data) return []
     const growth = data.growth_metrics
     const inflation = data.inflation_metrics
     const market = data.market_metrics
@@ -211,15 +189,47 @@ export default function App() {
     if (credit?.status === 'WARNING') changes.push('Credit spreads are still widening and need monitoring.')
     if (changes.length === 0) changes.push('Signal mix is stable versus yesterday with no major regime shock.')
     return changes.slice(0, 4)
-  }, [data.growth_metrics, data.inflation_metrics, data.market_metrics, data.financial_metrics])
+  }, [data])
   const insightSummary = useMemo(() => {
+    if (!data) return ''
     const macroTone = confidence.macro >= 60 ? 'macro pressure is manageable' : 'macro pressure remains elevated'
     const marketTone = confidence.market >= 60 ? 'market stress is contained' : 'market stress is still fragile'
     return `${data.regime} setup: ${macroTone} while ${marketTone}. Focus on transitions, not just level signals.`
-  }, [confidence.macro, confidence.market, data.regime])
+  }, [confidence.macro, confidence.market, data])
 
+  // BankaiTransitionProvider is lifted OUTSIDE the showIntro conditional so the canvas
+  // overlay survives the setShowIntro(false) call and Phases 4–5 play over the dashboard.
   return (
-    <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
+    <BankaiTransitionProvider>
+      {showIntro ? (
+        <IntroScreen
+          onContinue={() => {
+            sessionStorage.setItem('regimeiq_intro_seen', 'true')
+            setShowIntro(false)
+          }}
+        />
+      ) : loading ? (
+        <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-3">
+            <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs text-on-surface-variant uppercase tracking-widest">Loading regime data…</p>
+          </div>
+        </div>
+      ) : error || !data ? (
+        <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4 max-w-sm">
+            <span className="material-symbols-outlined text-error text-4xl">error</span>
+            <p className="text-sm text-on-surface-variant">{error ?? 'No data available'}</p>
+            <button
+              onClick={refetch}
+              className="px-4 py-2 bg-primary text-on-primary text-xs font-bold rounded hover:opacity-90 transition-all"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : (
+    <div className="dashboard-reveal bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
       <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} />
       <SideNav activeView={activeView} onSelectView={setActiveView} onExport={handleExport} />
 
@@ -476,5 +486,7 @@ export default function App() {
         </button>
       </div>
     </div>
+      )}
+    </BankaiTransitionProvider>
   )
 }
