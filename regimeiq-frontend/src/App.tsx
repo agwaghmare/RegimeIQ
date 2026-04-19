@@ -19,10 +19,10 @@ import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
 function regimeStyle(regime: string): { riskLevel: string; tone: string; glow: string } {
-  if (regime === 'Risk-On')  return { riskLevel: 'Low Risk',      tone: 'text-white',         glow: 'from-[#c6ff1f]/12 to-transparent' }
-  if (regime === 'Risk-Off') return { riskLevel: 'High Risk',     tone: 'text-orange-400',    glow: 'from-orange-500/16 to-transparent' }
-  if (regime === 'Crisis')   return { riskLevel: 'Extreme Risk',  tone: 'text-red-400',       glow: 'from-red-600/18 to-transparent' }
-  return { riskLevel: 'Moderate Risk',  tone: 'text-amber-400',   glow: 'from-amber-500/14 to-transparent' }
+  if (regime === 'Risk-On') return { riskLevel: 'Low Risk',      tone: 'text-white',        glow: 'from-[#c6ff1f]/8 to-transparent' }
+  if (regime === 'Risk-Off') return { riskLevel: 'High Risk',    tone: 'text-amber-400',   glow: 'from-amber-500/10 to-transparent' }
+  if (regime === 'Crisis') return { riskLevel: 'Extreme Risk',   tone: 'text-red-400',     glow: 'from-red-600/12 to-transparent' }
+  return { riskLevel: 'Moderate Risk', tone: 'text-[#9ba3ad]',  glow: 'from-zinc-600/8 to-transparent' }
 }
 
 function topSignals(data: RegimeData): MetricRow[] {
@@ -107,10 +107,10 @@ const articleBriefs: ArticleBrief[] = [
 ]
 
 function signalStyle(status: MetricRow['status']): string {
-  if (status === 'CRITICAL') return 'text-red-300 bg-red-900/30 border-red-500/40'
-  if (status === 'WARNING')  return 'text-amber-300 bg-amber-900/25 border-amber-500/35'
-  if (status === 'NEUTRAL')  return 'text-sky-300 bg-sky-900/20 border-sky-500/30'
-  return 'text-slate-400 bg-slate-800/20 border-slate-600/20'
+  if (status === 'CRITICAL') return 'text-slate-100 bg-slate-700/30 border-slate-500/40'
+  if (status === 'WARNING') return 'text-slate-200 bg-slate-600/25 border-slate-400/30'
+  if (status === 'NEUTRAL') return 'text-zinc-200 bg-zinc-500/20 border-zinc-400/30'
+  return 'text-slate-300 bg-slate-500/20 border-slate-300/30'
 }
 
 function trendArrow(t: MetricRow['trend']): string {
@@ -157,10 +157,10 @@ export default function App() {
   const keySignals   = data ? topSignals(data)             : []
   const actions      = data ? suggestedActions(data.regime): []
   const contributionRows = data ? [
-    { label: 'Growth',    score: data.scores.growth,                max: 4, color: '#3b82f6' },
-    { label: 'Inflation', score: data.scores.inflation,             max: 4, color: '#f59e0b' },
-    { label: 'Financial', score: data.scores.financial_conditions,  max: 4, color: '#22c55e' },
-    { label: 'Market',    score: data.scores.market_risk,           max: 4, color: '#ef4444' },
+    { label: 'Growth',    score: data.scores.growth,                max: 4 },
+    { label: 'Inflation', score: data.scores.inflation,             max: 4 },
+    { label: 'Financial', score: data.scores.financial_conditions,  max: 4 },
+    { label: 'Market',    score: data.scores.market_risk,           max: 4 },
   ] : []
   const confidence = data ? {
     macro:  Math.max(0, Math.min(100, Math.round((1 - ((data.scores.growth + data.scores.inflation + data.scores.financial_conditions) / 12)) * 100))),
@@ -369,8 +369,8 @@ export default function App() {
                       width: `${100 / timeline.length}%`,
                       background: point.regime === 'Risk-On'  ? '#c6ff1f'
                                 : point.regime === 'Neutral'  ? '#f59e0b'
-                                : point.regime === 'Risk-Off' ? '#f97316'
-                                : '#ef4444',
+                                : point.regime === 'Risk-Off' ? '#ef4444'
+                                : '#7f1d1d',
                       borderRight: '1px solid rgba(0,0,0,0.35)',
                     }}
                     title={`${point.date}: ${point.regime}`}
@@ -423,7 +423,7 @@ export default function App() {
                       <span className="tabular-nums">{row.score}/{row.max}</span>
                     </div>
                     <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                      <div className="h-full" style={{ width: `${(row.score / row.max) * 100}%`, background: row.color }}></div>
+                      <div className="h-full" style={{ width: `${(row.score / row.max) * 100}%`, background: 'var(--accent)' }}></div>
                     </div>
                   </div>
                 ))}
@@ -435,13 +435,13 @@ export default function App() {
                 <div>
                   <div className="flex justify-between text-xs mb-1"><span>Macro stress</span><span>{confidence.macro}%</span></div>
                   <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                    <div className="h-full" style={{ width: `${confidence.macro}%`, background: '#f97316' }}></div>
+                    <div className="h-full" style={{ width: `${confidence.macro}%`, background: 'var(--accent)' }}></div>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1"><span>Market stress</span><span>{confidence.market}%</span></div>
                   <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                    <div className="h-full" style={{ width: `${confidence.market}%`, background: '#ef4444' }}></div>
+                    <div className="h-full" style={{ width: `${confidence.market}%`, background: 'rgba(198,255,31,0.6)' }}></div>
                   </div>
                 </div>
                 <div className="rounded-lg px-3 py-2 text-xs text-on-surface-variant" style={{ border: '1px solid rgba(198,255,31,0.12)', background: 'rgba(198,255,31,0.04)' }}>

@@ -58,11 +58,11 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
                     }
                   : {
                       borderLeft: '2px solid transparent',
-                      color: 'var(--color-muted)',
+                      color: '#9ba3ad',
                     }
               }
               onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#eceff3' } }}
-              onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-muted)' } }}
+              onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ba3ad' } }}
             >
               <span
                 className="material-symbols-outlined text-lg"

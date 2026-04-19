@@ -35,7 +35,7 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null }:
           >
             Current
           </a>
-          <a className="hover:text-white transition-colors" href="#" style={{ color: 'var(--color-muted)' }}>Forecast</a>
+          <a className="text-[#9aa2ac] hover:text-white transition-colors" href="#">Forecast</a>
         </nav>
       </div>
 
@@ -48,12 +48,12 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null }:
           <span className="h-2 w-2 rounded-full" style={{ background: 'var(--accent)' }} />
         </div>
 
-        <div className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--color-muted)' }}>
+        <div className="text-xs font-medium flex items-center gap-1 text-[#9aa2ac]">
           <span>Prob:</span>
           <span className="font-black text-white">{Math.round(probability * 100)}%</span>
         </div>
 
-        <div className="text-xs flex items-center gap-2" style={{ color: 'var(--color-muted)' }}>
+        <div className="text-xs flex items-center gap-2 text-[#9aa2ac]">
           <span
             className={`h-2 w-2 rounded-full ${isLive ? 'live-blink' : ''}`}
             style={{ background: isLive ? 'var(--accent)' : '#ef4444' }}
