@@ -20,9 +20,9 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 
 export function PortfolioAllocation({ allocation, regime }: Props) {
   const segments = [
-    { key: 'eq', label: 'Equities',     pct: allocation.equities,    color: '#3b82f6' },
-    { key: 'bd', label: 'Fixed Income', pct: allocation.bonds,       color: '#22c55e' },
-    { key: 'alt', label: 'Alternatives', pct: allocation.alternatives, color: '#f59e0b' },
+    { key: 'eq',  label: 'Equities',      pct: allocation.equities,     color: '#6366f1' },
+    { key: 'bd',  label: 'Fixed Income',  pct: allocation.bonds,        color: '#06b6d4' },
+    { key: 'alt', label: 'Alternatives',  pct: allocation.alternatives, color: '#f59e0b' },
   ]
   const eqDeg = segments[0].pct * 360
   const bdDeg = segments[1].pct * 360
