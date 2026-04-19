@@ -84,7 +84,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
 
   return (
     <section className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6">
-      <div className="bg-gradient-to-r from-[#181a1f] to-[#272c34] rounded-xl p-6 border border-primary/30 shadow-[0_0_40px_rgba(195,201,209,0.14)]">
+      <div className="bg-gradient-to-r from-[#181a1f] to-[#272c34] rounded-xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
         <div className="text-[11px] uppercase tracking-widest text-primary mb-2">Current Playbook</div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div>
@@ -103,7 +103,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Macro Indicators</h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between border-b border-outline-variant/10 pb-2">
@@ -121,18 +121,18 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
           </div>
         </div>
 
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Policy Timeline</h3>
           <div className="space-y-3 text-xs">
-            <div className="rounded-lg bg-surface-container-high p-3 border border-outline-variant/20">
+            <div className="rounded-lg bg-surface-container-high p-3 border-0">
               <div className="text-on-surface-variant mb-1">Now</div>
               <div>Regime score {totalScore}/13 with {bias.toLowerCase()}.</div>
             </div>
-            <div className="rounded-lg bg-surface-container-high p-3 border border-outline-variant/20">
+            <div className="rounded-lg bg-surface-container-high p-3 border-0">
               <div className="text-on-surface-variant mb-1">3M</div>
               <div>FedWatch: Cut {cut}% · Hold {hold}% · Hike {hike}%</div>
             </div>
-            <div className="rounded-lg bg-surface-container-high p-3 border border-outline-variant/20">
+            <div className="rounded-lg bg-surface-container-high p-3 border-0">
               <div className="text-on-surface-variant mb-1">6M (inferred)</div>
               <div>Cut {sixMonth.cut}% · Hold {sixMonth.hold}% · Hike {sixMonth.hike}%</div>
             </div>
@@ -141,18 +141,18 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Key Drivers (Interpretation)</h3>
           <div className="space-y-2 text-xs">
             {explanatoryInsights.map((d) => (
-              <div key={d} className="rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2">
+              <div key={d} className="rounded-lg border-0 bg-surface-container-high px-3 py-2">
                 {d}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Trade Playbook</h3>
           <div className="text-xs text-on-surface-variant mb-2">Base case</div>
           <div className="space-y-2 mb-4">
@@ -163,26 +163,26 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
           <div className="text-xs text-on-surface-variant mb-2">If X happens -> do Y</div>
           <div className="space-y-2">
             {tradePlaybook.scenarios.map((t) => (
-              <div key={t} className="rounded-lg border border-outline-variant/20 bg-surface-container-high px-3 py-2 text-xs">{t}</div>
+              <div key={t} className="rounded-lg border-0 bg-surface-container-high px-3 py-2 text-xs">{t}</div>
             ))}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Regime Flip Triggers</h3>
           <div className="space-y-2 text-xs">
             {regimeFlipTriggers.map((t) => (
-              <div key={t} className="rounded border border-outline-variant/20 bg-surface-container-high px-3 py-2">{t}</div>
+              <div key={t} className="rounded border-0 bg-surface-container-high px-3 py-2">{t}</div>
             ))}
           </div>
         </div>
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Expected Market Behavior</h3>
           <div className="text-sm leading-relaxed">{expectedBehavior}</div>
         </div>
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3">Conviction Score</h3>
           <div className="text-3xl font-black">{convictionScore}<span className="text-base text-on-surface-variant">/100</span></div>
           <div className="mt-1 text-sm font-semibold">{convictionLabel}</div>

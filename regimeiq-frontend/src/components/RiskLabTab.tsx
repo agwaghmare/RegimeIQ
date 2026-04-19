@@ -75,7 +75,7 @@ export function RiskLabTab() {
 
   return (
     <section className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6">
-      <div className="bg-gradient-to-r from-[#181a1f] to-[#252a32] rounded-xl p-6 border border-outline-variant/40 shadow-[0_0_34px_rgba(173,179,189,0.13)]">
+      <div className="bg-gradient-to-r from-[#181a1f] to-[#252a32] rounded-xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
         <div className="text-[11px] uppercase tracking-widest text-primary mb-2">Systemic Risk Level</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -94,7 +94,7 @@ export function RiskLabTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Risk Contribution Bars</h3>
           <div className="space-y-3">
             {heatmapRows.map((row) => (
@@ -111,13 +111,13 @@ export function RiskLabTab() {
           </div>
         </div>
 
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Risk Heatmap</h3>
           <div className="grid grid-cols-2 gap-3">
             {heatmapRows.map((row) => (
               <div
                 key={`heat-${row.key}`}
-                className="rounded-lg border border-outline-variant/20 p-3"
+                className="rounded-lg border-0 p-3"
                 style={{ background: `rgba(195,201,209,${0.08 + (row.pct / 100) * 0.35})` }}
               >
                 <div className="text-[11px] uppercase text-on-surface-variant">{row.key.replace('_', ' ')}</div>
@@ -129,7 +129,7 @@ export function RiskLabTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 text-xs space-y-3">
+        <div className="bg-surface-container rounded-xl p-5 border-0 text-xs space-y-3">
           <div className="font-bold uppercase tracking-widest text-on-surface-variant">Stress Indicators</div>
           <div className="flex items-center justify-between">
             <span>Yield Curve</span>
@@ -156,13 +156,13 @@ export function RiskLabTab() {
           </div>
           <div className="text-on-surface-variant">{stressInterpretation}</div>
         </div>
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 text-xs space-y-3">
+        <div className="bg-surface-container rounded-xl p-5 border-0 text-xs space-y-3">
           <div className="font-bold uppercase tracking-widest text-on-surface-variant">Primary Risk Driver</div>
           <div className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2">{topDriverText}</div>
           <div className="font-bold uppercase tracking-widest text-on-surface-variant pt-1">Fragility Points</div>
           <div className="space-y-2">
             {fragilityPoints.map((f) => (
-              <div key={f} className="rounded border border-outline-variant/20 bg-surface-container-high px-3 py-2">
+              <div key={f} className="rounded border-0 bg-surface-container-high px-3 py-2">
                 {f}
               </div>
             ))}
@@ -179,21 +179,21 @@ export function RiskLabTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Risk Trend</h3>
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="rounded-lg border border-outline-variant/20 bg-surface-container-high p-3">
+            <div className="rounded-lg border-0 bg-surface-container-high p-3">
               <div className="text-on-surface-variant">1M Direction</div>
               <div className="text-xl font-bold mt-1">{trend1M}</div>
             </div>
-            <div className="rounded-lg border border-outline-variant/20 bg-surface-container-high p-3">
+            <div className="rounded-lg border-0 bg-surface-container-high p-3">
               <div className="text-on-surface-variant">3M Direction</div>
               <div className="text-xl font-bold mt-1">{trend3M}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
+        <div className="bg-surface-container rounded-xl p-5 border-0">
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Historical Comparison</h3>
           <div className="space-y-3">
             {historicalProxy.map((h) => (

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent: #c6ff1f;
+  --accent-dim: rgba(198, 255, 31, 0.10);
+}
+
 body {
   font-family: 'Inter', sans-serif;
   margin: 0;

@@ -32,19 +32,6 @@ function dirClass(label: ReturnType<typeof dirLabel>): string {
   return 'text-on-surface-variant bg-surface-container-high border-outline-variant/20'
 }
 
-function sparklinePoints(value: number | null | undefined): string {
-  const safe = Number.isFinite(value) ? Number(value) : 0
-  const n = 6
-  const pts: string[] = []
-  for (let i = 0; i < n; i += 1) {
-    const x = (i / (n - 1)) * 100
-    const drift = (i - (n - 1) / 2) * 0.07
-    const yRaw = 50 - (safe + drift) * 8
-    const y = clamp(yRaw, 12, 88)
-    pts.push(`${x},${y}`)
-  }
-  return pts.join(' ')
-}
 
 function MacroCard({
   title,
@@ -59,23 +46,8 @@ function MacroCard({
   return (
     <div className="bg-gradient-to-br from-surface-container-low to-surface-container rounded-xl p-4 border border-outline-variant/20 shadow-sm">
       <div className="text-xs text-on-surface-variant">{title}</div>
-      <div className="flex items-end justify-between mt-2">
+      <div className="mt-2">
         <div className="text-xl font-black tracking-tight">{f(value)}</div>
-        <div className="w-20 h-10 opacity-80">
-          {isEmpty ? (
-            <div className="h-full w-full rounded bg-surface-container-high"></div>
-          ) : (
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-              <polyline
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="5"
-                className="text-primary"
-                points={sparklinePoints(value)}
-              />
-            </svg>
-          )}
-        </div>
       </div>
       <div className="text-[11px] text-on-surface-variant mt-2">{subtitle}</div>
     </div>

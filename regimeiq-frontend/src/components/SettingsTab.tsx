@@ -217,14 +217,14 @@ export function SettingsTab() {
           <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Allocation Impact</div>
           <div className="space-y-2 text-xs mb-4">
             {[
-              { k: 'Equities', v: (currentWeights?.equities ?? selectedTemplate.equities) * 100 },
-              { k: 'Bonds', v: (currentWeights?.bonds ?? selectedTemplate.bonds) * 100 },
-              { k: 'Commodities', v: (currentWeights?.commodities ?? selectedTemplate.commodities) * 100 },
+              { k: 'Equities',    v: (currentWeights?.equities   ?? selectedTemplate.equities)   * 100, color: '#3b82f6' },
+              { k: 'Bonds',       v: (currentWeights?.bonds       ?? selectedTemplate.bonds)       * 100, color: '#22c55e' },
+              { k: 'Commodities', v: (currentWeights?.commodities ?? selectedTemplate.commodities) * 100, color: '#f59e0b' },
             ].map((row) => (
               <div key={row.k}>
-                <div className="flex justify-between mb-1"><span>{row.k}</span><span>{Math.round(row.v)}%</span></div>
+                <div className="flex justify-between mb-1"><span>{row.k}</span><span style={{ color: row.color }}>{Math.round(row.v)}%</span></div>
                 <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: `${row.v}%` }}></div>
+                  <div className="h-full" style={{ width: `${row.v}%`, backgroundColor: row.color }}></div>
                 </div>
               </div>
             ))}

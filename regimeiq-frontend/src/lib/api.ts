@@ -207,7 +207,7 @@ function mapApiToRegimeData(raw: RegimeApiResponse): RegimeData {
     regime: raw.regime,
     probability: raw.probability,
     total_score: raw.total_score,
-    max_score: 13,
+    max_score: 10,
     scores: {
       growth: scaleToFour(b.growth),
       inflation: scaleToFour(b.inflation),

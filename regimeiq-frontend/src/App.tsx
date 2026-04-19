@@ -9,7 +9,6 @@ import { ScoreCards } from './components/ScoreCards'
 import { MetricsTable } from './components/MetricsTable'
 import { RegimeBreakdown } from './components/RegimeBreakdown'
 import { PortfolioAllocation } from './components/PortfolioAllocation'
-import { TerminalFeed } from './components/TerminalFeed'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
 import { RiskLabTab } from './components/RiskLabTab'
 import { PlaybookTab } from './components/PlaybookTab'
@@ -20,10 +19,10 @@ import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
 function regimeStyle(regime: string): { riskLevel: string; tone: string; glow: string } {
-  if (regime === 'Risk-On') return { riskLevel: 'Low Risk', tone: 'text-slate-200', glow: 'from-slate-400/20 to-transparent' }
-  if (regime === 'Risk-Off') return { riskLevel: 'High Risk', tone: 'text-slate-300', glow: 'from-slate-500/20 to-transparent' }
-  if (regime === 'Crisis') return { riskLevel: 'Extreme Risk', tone: 'text-slate-100', glow: 'from-slate-700/25 to-transparent' }
-  return { riskLevel: 'Moderate Risk', tone: 'text-zinc-200', glow: 'from-zinc-500/20 to-transparent' }
+  if (regime === 'Risk-On') return { riskLevel: 'Low Risk',      tone: 'text-white',        glow: 'from-[#c6ff1f]/8 to-transparent' }
+  if (regime === 'Risk-Off') return { riskLevel: 'High Risk',    tone: 'text-amber-400',   glow: 'from-amber-500/10 to-transparent' }
+  if (regime === 'Crisis') return { riskLevel: 'Extreme Risk',   tone: 'text-red-400',     glow: 'from-red-600/12 to-transparent' }
+  return { riskLevel: 'Moderate Risk', tone: 'text-[#9ba3ad]',  glow: 'from-zinc-600/8 to-transparent' }
 }
 
 function topSignals(data: RegimeData): MetricRow[] {
@@ -265,13 +264,13 @@ export default function App() {
                 <div className={`mt-2 text-sm md:text-base font-semibold ${hero.tone}`}>{hero.riskLevel}</div>
               </div>
               <div className="rounded-xl border border-outline-variant/20 bg-surface/40 px-4 py-3 min-w-[220px]">
-                <div className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Confidence</div>
+                <div className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Stress Level</div>
                 <div className="flex items-end justify-between">
                   <div className="text-2xl font-black tabular-nums">{Math.round(data.probability * 100)}%</div>
                   <div className="text-[11px] text-on-surface-variant">Updated {data.updated_at}</div>
                 </div>
                 <div className="mt-2 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-700" style={{ width: `${Math.round(data.probability * 100)}%` }}></div>
+                  <div className="h-full transition-all duration-700" style={{ width: `${Math.round(data.probability * 100)}%`, background: 'var(--accent)' }}></div>
                 </div>
               </div>
             </div>
@@ -289,7 +288,7 @@ export default function App() {
                 <div className="space-y-4">
                   {(['Macro', 'Stock-specific', 'Sector-specific'] as ArticleCategory[]).map((category) => (
                     <div key={category}>
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-primary mb-2">{category}</div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--accent)' }}>{category}</div>
                       <div className="space-y-2">
                         {articleBriefs
                           .filter((article) => article.category === category)
@@ -341,7 +340,7 @@ export default function App() {
               <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-4">Suggested Action</div>
               <div className="space-y-3">
                 {actions.map((action) => (
-                  <div key={action} className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-sm leading-relaxed">
+                  <div key={action} className="rounded-lg px-3 py-2 text-sm leading-relaxed" style={{ border: '1px solid rgba(198,255,31,0.12)', background: 'rgba(198,255,31,0.04)' }}>
                     {action}
                   </div>
                 ))}
@@ -365,16 +364,15 @@ export default function App() {
                 {timeline.length > 0 ? timeline.map((point, idx) => (
                   <div
                     key={`${point.date}-${idx}`}
-                    className={`h-full ${
-                      point.regime === 'Risk-On'
-                        ? 'bg-slate-300'
-                        : point.regime === 'Neutral'
-                          ? 'bg-slate-500'
-                          : point.regime === 'Risk-Off'
-                            ? 'bg-slate-700'
-                            : 'bg-slate-900'
-                    }`}
-                    style={{ width: `${100 / timeline.length}%` }}
+                    className="h-full"
+                    style={{
+                      width: `${100 / timeline.length}%`,
+                      background: point.regime === 'Risk-On'  ? '#c6ff1f'
+                                : point.regime === 'Neutral'  ? '#f59e0b'
+                                : point.regime === 'Risk-Off' ? '#ef4444'
+                                : '#7f1d1d',
+                      borderRight: '1px solid rgba(0,0,0,0.35)',
+                    }}
                     title={`${point.date}: ${point.regime}`}
                   />
                 )) : (
@@ -400,7 +398,8 @@ export default function App() {
               <div className="flex items-center gap-5">
                 <div className="relative h-24 w-24 rounded-full border-8 border-surface-container-highest">
                   <div
-                    className="absolute left-1/2 top-1/2 h-1 w-9 origin-left -translate-y-1/2 bg-primary rounded"
+                    className="absolute left-1/2 top-1/2 h-1 w-9 origin-left -translate-y-1/2 rounded"
+                    style={{ background: 'var(--accent)' }}
                     style={{ transform: `translateY(-50%) rotate(${(data.total_score / data.max_score) * 180 - 90}deg)` }}
                   ></div>
                   <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold">{dashboardRisk}</div>
@@ -424,28 +423,28 @@ export default function App() {
                       <span className="tabular-nums">{row.score}/{row.max}</span>
                     </div>
                     <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${(row.score / row.max) * 100}%` }}></div>
+                      <div className="h-full" style={{ width: `${(row.score / row.max) * 100}%`, background: 'var(--accent)' }}></div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div className="xl:col-span-1 bg-surface-container rounded-xl border border-outline-variant/20 p-5 shadow-sm">
-              <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-4">Confidence Breakdown</div>
+              <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-4">Stress Breakdown</div>
               <div className="space-y-3">
                 <div>
-                  <div className="flex justify-between text-xs mb-1"><span>Macro confidence</span><span>{confidence.macro}%</span></div>
+                  <div className="flex justify-between text-xs mb-1"><span>Macro stress</span><span>{confidence.macro}%</span></div>
                   <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${confidence.macro}%` }}></div>
+                    <div className="h-full" style={{ width: `${confidence.macro}%`, background: 'var(--accent)' }}></div>
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-1"><span>Market confidence</span><span>{confidence.market}%</span></div>
+                  <div className="flex justify-between text-xs mb-1"><span>Market stress</span><span>{confidence.market}%</span></div>
                   <div className="h-2 rounded bg-surface-container-highest overflow-hidden">
-                    <div className="h-full bg-primary/80" style={{ width: `${confidence.market}%` }}></div>
+                    <div className="h-full" style={{ width: `${confidence.market}%`, background: 'rgba(198,255,31,0.6)' }}></div>
                   </div>
                 </div>
-                <div className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-on-surface-variant">
+                <div className="rounded-lg px-3 py-2 text-xs text-on-surface-variant" style={{ border: '1px solid rgba(198,255,31,0.12)', background: 'rgba(198,255,31,0.04)' }}>
                   {insightSummary}
                 </div>
               </div>
@@ -467,9 +466,6 @@ export default function App() {
                   <MetricsTable title="Fin. Conditions" subtitle="FINANCIAL" rows={data.financial_metrics} />
                   <MetricsTable title="Market Risk" subtitle="MARKET" rows={data.market_metrics} />
                 </div>
-                <div id="archive" className="scroll-mt-24">
-                  <TerminalFeed />
-                </div>
               </div>
             </details>
           </section>
@@ -479,7 +475,8 @@ export default function App() {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={refetch}
-          className="h-14 w-14 rounded-full bg-primary text-on-primary shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+          className="h-14 w-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
+          style={{ background: 'var(--accent)', color: '#000', boxShadow: '0 4px 24px rgba(198,255,31,0.25)' }}
           title="Refresh regime data"
         >
           <span className="material-symbols-outlined">bolt</span>
