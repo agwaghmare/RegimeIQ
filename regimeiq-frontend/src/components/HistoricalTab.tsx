@@ -151,16 +151,18 @@ export function HistoricalTab() {
 
         {snapshotData && !snapshotLoading && (
           <div className="space-y-6 pt-2">
-            <div className="flex items-center gap-3 pb-3 border-b border-outline-variant/20">
-              <span className="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest bg-[#1a1a1e] border border-outline-variant/30">
-                {snapshotData.regime}
-              </span>
-              <span className="text-xs text-on-surface-variant">
-                Score: {snapshotData.total_score} / {snapshotData.max_score}
-              </span>
-              <span className="text-xs text-on-surface-variant">
-                Probability: {Math.round(snapshotData.probability * 100)}%
-              </span>
+            <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-outline-variant/20">
+              <RegimePill regime={snapshotData.regime} />
+              <div className="flex items-center gap-1 text-xs text-on-surface-variant">
+                <span className="uppercase tracking-widest opacity-60">Score</span>
+                <span className="font-bold text-on-surface ml-1">{snapshotData.total_score}</span>
+                <span className="opacity-40">/</span>
+                <span className="opacity-60">{snapshotData.max_score}</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-on-surface-variant">
+                <span className="uppercase tracking-widest opacity-60">Probability</span>
+                <span className="font-bold text-on-surface ml-1">{Math.round(snapshotData.probability * 100)}%</span>
+              </div>
             </div>
 
             <ScoreCards scores={snapshotData.scores} />
