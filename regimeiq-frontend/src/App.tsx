@@ -131,7 +131,7 @@ export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
   const [activeView, setActiveView] = useState<
-    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio' | 'forecast' | 'pricing'
+    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio' | 'forecast'
   >('dashboard')
   const [showIntro, setShowIntro] = useState(() => {
     return sessionStorage.getItem('regimeiq_intro_seen') !== 'true'
