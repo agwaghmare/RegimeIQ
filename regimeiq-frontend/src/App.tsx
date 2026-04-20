@@ -237,7 +237,7 @@ export default function App() {
         </div>
       ) : (
     <div className="dashboard-reveal bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen">
-      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} onHome={() => setActiveView('dashboard')} />
+      <TopNav regime={data.regime} probability={data.probability} isLive={isLive} dataDate={data.updated_at} onHome={() => setActiveView('dashboard')} onSelectView={(v) => setActiveView(v)} />
       <SideNav activeView={activeView} onSelectView={setActiveView} onExport={handleExport} />
 
       {activeView === 'globalMacro' ? (
