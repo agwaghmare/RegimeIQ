@@ -167,34 +167,32 @@ export function HistoricalTab() {
 
             <ScoreCards scores={snapshotData.scores} />
 
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 lg:col-span-9 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <MetricsTable
-                    title="Growth Metrics"
-                    subtitle={`AS OF: ${snapshotData.updated_at}`}
-                    rows={snapshotData.growth_metrics}
-                  />
-                  <MetricsTable
-                    title="Inflation Metrics"
-                    subtitle={snapshotData.regime.toUpperCase()}
-                    rows={snapshotData.inflation_metrics}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <MetricsTable
-                    title="Fin. Conditions"
-                    subtitle="FINANCIAL"
-                    rows={snapshotData.financial_metrics}
-                  />
-                  <MetricsTable
-                    title="Market Risk"
-                    subtitle="MARKET"
-                    rows={snapshotData.market_metrics}
-                  />
-                </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <MetricsTable
+                  title="Growth Metrics"
+                  subtitle={`AS OF: ${snapshotData.updated_at}`}
+                  rows={snapshotData.growth_metrics}
+                />
+                <MetricsTable
+                  title="Inflation Metrics"
+                  subtitle={snapshotData.regime.toUpperCase()}
+                  rows={snapshotData.inflation_metrics}
+                />
               </div>
-              <aside className="col-span-12 lg:col-span-3 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <MetricsTable
+                  title="Fin. Conditions"
+                  subtitle="FINANCIAL"
+                  rows={snapshotData.financial_metrics}
+                />
+                <MetricsTable
+                  title="Market Risk"
+                  subtitle="MARKET"
+                  rows={snapshotData.market_metrics}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <RegimeBreakdown
                   regime={snapshotData.regime}
                   probability={snapshotData.probability}
@@ -206,7 +204,7 @@ export function HistoricalTab() {
                   allocation={snapshotData.allocation}
                   regime={snapshotData.regime}
                 />
-              </aside>
+              </div>
             </div>
           </div>
         )}
