@@ -129,16 +129,17 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
       ctx.restore()
     }
 
-    // Magenta edge glow — layered from wide outer to razor white core
+    // Green-lime edge glow — layered from wide outer to razor white-hot core
+    // Gradient: #45B649 (69,182,73) → #DCE35B (220,227,91) → white
     const GLOW_LAYERS: Array<[number, number, number, number, number, number]> = [
       // [lineWidth, r, g, b, alpha, shadowBlur]
-      [75,  60,  0, 100, 0.18, 0],
-      [48, 110,  0, 160, 0.32, 0],
-      [28, 180,  0, 195, 0.52, 0],
-      [15, 235,  0, 210, 0.72, 18],
-      [ 7, 255, 30, 225, 0.88, 13],
-      [ 3, 255,130, 240, 0.82,  9],
-      [1.2,255,255, 255, 0.78,  5],
+      [75,  15,  60,  12, 0.18, 0],
+      [48,  35, 110,  22, 0.32, 0],
+      [28,  69, 182,  40, 0.52, 0],
+      [15, 148, 215,  55, 0.72, 18],
+      [ 7, 198, 255,  31, 0.88, 13],
+      [ 3, 220, 235,  80, 0.82,  9],
+      [1.2,255, 255, 210, 0.78,  5],
     ]
 
     const drawEdge = (alpha: number, widthScale = 1, lumBoost = 0) => {
@@ -153,7 +154,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
         ctx.lineCap     = 'round'
         if (blur) {
           ctx.shadowBlur  = blur
-          ctx.shadowColor = lumBoost > 0.3 ? 'rgba(255,255,255,0.92)' : 'rgba(255,0,200,0.75)'
+          ctx.shadowColor = lumBoost > 0.3 ? 'rgba(255,255,220,0.92)' : 'rgba(69,200,73,0.75)'
         }
         ctx.stroke()
         ctx.restore()
@@ -173,8 +174,8 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
       const y      = Math.random() * H
       const distFrac = Math.hypot(x - W / 2, y - H / 2) / Math.hypot(W / 2, H / 2)
       const t0     = clamp(distFrac * 0.55 + Math.random() * 0.45, 0, 1)
-      const vx     = (Math.random() - 0.5) * 0.28
-      const vy     = -(0.18 + Math.random() * 0.40)
+      const vx     = (Math.random() - 0.5) * 0.18
+      const vy     = -(0.08 + Math.random() * 0.20)
       const maxR   = 28 + Math.random() * 95
       return { x, y, vx, vy, t0, maxR }
     })
@@ -183,15 +184,17 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
     const spawnFragments = (count: number) => {
       for (let i = 0; i < count; i++) {
         const { x, y } = onArc()
-        const speed  = 7 + Math.random() * 14
-        // Asymmetry: right side gets more (slash direction bias)
+        // Tiered speed: 40% fast long-travel, 60% medium — creates depth
+        const isFast = Math.random() < 0.40
+        const speed  = isFast ? 45 + Math.random() * 35 : 22 + Math.random() * 28
+        // Full hemisphere dispersion — no clustering near origin
         const side   = Math.random() < 0.62 ? 1 : -1
-        const spread = (0.05 + Math.random() * 0.75) * Math.PI * side
-        const ml     = 0.35 + Math.random() * 0.45
+        const spread = (0.02 + Math.random() * 0.98) * Math.PI * side
+        const ml     = isFast ? 0.90 + Math.random() * 0.70 : 0.65 + Math.random() * 0.65
         fragments.push({
           x, y,
           vx: Math.cos(spread) * speed,
-          vy: Math.sin(spread) * speed * 0.35,
+          vy: Math.sin(spread) * speed * 0.65,  // stronger vertical travel
           life: ml, ml,
         })
       }
@@ -200,9 +203,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
     // 2. Energy Wisps — curved soft glow, medium life
     const spawnWisp = () => {
       const { x, y } = onArc()
-      const speed = 1.5 + Math.random() * 3.5
-      const angle = (Math.random() - 0.28) * Math.PI * 0.9
-      const ml    = 0.9 + Math.random() * 0.9
+      const speed = 4 + Math.random() * 7
+      const angle = (Math.random() - 0.5) * Math.PI * 1.8
+      const ml    = 1.4 + Math.random() * 1.4
       wisps.push({
         x, y,
         vx: Math.cos(angle) * speed,
@@ -396,7 +399,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           const blobG = ctx.createRadialGradient(SX, H/2, 0, SX, H/2, baseR)
           blobG.addColorStop(0,   'rgba(0,0,0,1)')
           blobG.addColorStop(0.5, 'rgba(0,0,0,1)')
-          blobG.addColorStop(0.82, pt > 0.52 ? `rgba(8,0,20,${pt * 0.88})` : 'rgba(0,0,0,1)')
+          blobG.addColorStop(0.82, pt > 0.52 ? `rgba(2,14,3,${pt * 0.88})` : 'rgba(0,0,0,1)')
           blobG.addColorStop(1,   'rgba(0,0,0,0.88)')
           ctx.fillStyle = blobG
           ctx.fill()
@@ -423,12 +426,12 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           const lt = s.life / s.ml
           let cr: number, cg: number, cb_: number, ca: number
           if (lt > 0.65) {
-            cr = 255; cg = 255; cb_ = 255; ca = lt * 0.90
+            cr = 255; cg = 255; cb_ = 210; ca = lt * 0.90           // warm white-hot
           } else if (lt > 0.30) {
             const b = (lt - 0.30) / 0.35
-            cr = 255; cg = Math.floor(b * 255); cb_ = Math.floor(100 + b * 155); ca = lt * 0.85
+            cr = Math.floor(69 + b * 151); cg = Math.floor(182 + b * 45); cb_ = Math.floor(73 - b * 42); ca = lt * 0.85  // #45B649 → lime
           } else {
-            cr = 255; cg = 0; cb_ = 185; ca = lt * 0.70
+            cr = 69; cg = 182; cb_ = 73; ca = lt * 0.70             // #45B649 green
           }
           ctx.beginPath()
           ctx.arc(s.x, s.y, 1.2 + (1 - lt) * 0.8, 0, Math.PI * 2)
@@ -448,9 +451,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           if (f.life <= 0) { wFlashes.splice(i, 1); continue }
           const ft  = f.life / f.ml
           const grd = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.radius)
-          grd.addColorStop(0,    `rgba(255,255,255,${ft * 0.98})`)
-          grd.addColorStop(0.35, `rgba(255,55,240,${ft * 0.78})`)
-          grd.addColorStop(0.72, `rgba(175,0,175,${ft * 0.38})`)
+          grd.addColorStop(0,    `rgba(255,255,220,${ft * 0.98})`)
+          grd.addColorStop(0.35, `rgba(198,255,31,${ft * 0.78})`)
+          grd.addColorStop(0.72, `rgba(69,182,73,${ft * 0.38})`)
           grd.addColorStop(1,    'rgba(0,0,0,0)')
           ctx.fillStyle = grd
           ctx.beginPath()
@@ -458,7 +461,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           ctx.fill()
         }
 
-        // ── Magenta crack system: turns white-hot during compression ──
+        // ── Green crack system: turns white-hot during compression ──
         for (let i = 0; i < cracks.length; i++) {
           const c = cracks[i]
           if (pt < 0.30) {
@@ -478,7 +481,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           }
 
           if (c.alpha < 0.01) continue
-          // White-hot color transition: magenta (255,0,200) → white (255,255,255)
+          // Green-to-white color transition: #45B649 (69,182,73) → white (255,255,255)
           const crackG = Math.floor(compressionT * 255)
           const crackB = Math.floor(200 + compressionT * 55)
           const CSTEPS = 7
@@ -492,9 +495,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
             if (s === 0) { ctx.moveTo(x, y) } else { ctx.lineTo(x, y) }
           }
           ctx.lineWidth   = 0.7 + Math.random() * 0.8
-          ctx.strokeStyle = `rgba(255,${crackG},${crackB},${c.alpha})`
+          ctx.strokeStyle = `rgba(${Math.floor(69+compressionT*186)},${Math.floor(182+compressionT*73)},${Math.floor(73+compressionT*182)},${c.alpha})`
           ctx.shadowBlur  = 8 + compressionT * 16
-          ctx.shadowColor = compressionT > 0.5 ? 'rgba(255,255,220,0.95)' : 'rgba(255,0,180,0.95)'
+          ctx.shadowColor = compressionT > 0.5 ? 'rgba(255,255,200,0.95)' : 'rgba(69,182,73,0.95)'
           ctx.stroke()
           ctx.restore()
         }
@@ -522,9 +525,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           ctx.save()
           ctx.beginPath()
           ctx.arc(l.x, l.y, 1.8, 0, Math.PI * 2)
-          ctx.fillStyle   = isWht ? `rgba(255,255,255,${lt*0.88})` : `rgba(255,0,200,${lt*0.78})`
+          ctx.fillStyle   = isWht ? `rgba(255,255,210,${lt*0.88})` : `rgba(69,182,73,${lt*0.78})`
           ctx.shadowBlur  = isWht ? 10 : 6
-          ctx.shadowColor = isWht ? 'rgba(255,255,220,0.85)' : 'rgba(255,0,180,0.80)'
+          ctx.shadowColor = isWht ? 'rgba(220,255,120,0.85)' : 'rgba(69,182,73,0.80)'
           ctx.fill()
           ctx.restore()
         }
@@ -573,9 +576,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
               ctx.lineTo(cx, cy)
             }
             ctx.lineWidth   = 0.8 + boltA * 1.2
-            ctx.strokeStyle = `rgba(255,0,200,${boltA * 0.88})`
+            ctx.strokeStyle = `rgba(198,255,31,${boltA * 0.88})`
             ctx.shadowBlur  = 10
-            ctx.shadowColor = 'rgba(255,0,200,0.92)'
+            ctx.shadowColor = 'rgba(198,255,31,0.92)'
             ctx.lineCap     = 'round'
             ctx.lineJoin    = 'round'
             ctx.stroke()
@@ -595,7 +598,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
         // Flash frame: 10% magenta overlay decaying to 0 over 50ms
         const flashAlpha = Math.max(0, 0.10 * (1 - slashMs / 50))
         if (flashAlpha > 0.001) {
-          ctx.fillStyle = `rgba(255,0,200,${flashAlpha})`
+          ctx.fillStyle = `rgba(69,182,73,${flashAlpha})`
           ctx.fillRect(0, 0, W, H)
         }
 
@@ -606,7 +609,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
         if (!fragmentsBurst) {
           fragmentsBurst = true
           bolts.length = 0
-          spawnFragments(88 + Math.floor(Math.random() * 38))
+          spawnFragments(140 + Math.floor(Math.random() * 60))
           for (const l of leakers) {
             const dx = l.x - SX
             const dy = l.y - H / 2
@@ -629,7 +632,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
         const rR = pt * Math.min(W, H) * 0.28
         const rG = ctx.createRadialGradient(SX, H/2, rR * 0.8, SX, H/2, rR)
         rG.addColorStop(0,   'rgba(0,0,0,0)')
-        rG.addColorStop(0.6, `rgba(200,0,210,${(1-pt)*0.11})`)
+        rG.addColorStop(0.6, `rgba(69,182,73,${(1-pt)*0.11})`)
         rG.addColorStop(1,   'rgba(0,0,0,0)')
         ctx.fillStyle = rG
         ctx.beginPath()
@@ -641,19 +644,19 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           const f = fragments[i]
           const px = f.x;  const py = f.y
           f.x += f.vx;  f.y += f.vy
-          f.vx *= 0.86;  f.vy *= 0.88
-          f.life -= 0.045
+          f.vx *= 0.91;  f.vy *= 0.92
+          f.life -= 0.030
           if (f.life <= 0) { fragments.splice(i, 1); continue }
           const a  = f.life / f.ml
           ctx.save()
           ctx.beginPath()
           ctx.moveTo(px, py)
           ctx.lineTo(f.x, f.y)
-          ctx.lineWidth   = 1.2 + a * 2
-          ctx.strokeStyle = `rgba(255,${Math.floor(a*55)},${Math.floor(a*195)},${a})`
+          ctx.lineWidth   = 1.6 + a * 2.8
+          ctx.strokeStyle = `rgba(${Math.floor(69+a*151)},${Math.floor(182+a*45)},${Math.floor(73-a*42)},${a})`
           ctx.lineCap     = 'round'
           ctx.shadowBlur  = 9
-          ctx.shadowColor = 'rgba(255,0,200,0.7)'
+          ctx.shadowColor = 'rgba(69,200,73,0.7)'
           ctx.stroke()
           ctx.restore()
         }
@@ -669,9 +672,9 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           ctx.save()
           ctx.beginPath()
           ctx.arc(l.x, l.y, 2.2 + a * 1.5, 0, Math.PI * 2)
-          ctx.fillStyle   = `rgba(255,${Math.floor(a * 200)},255,${a * 0.92})`
+          ctx.fillStyle   = `rgba(${Math.floor(69+a*151)},${Math.floor(182+a*45)},${Math.floor(73+a*127)},${a * 0.92})`
           ctx.shadowBlur  = 12
-          ctx.shadowColor = 'rgba(255,180,255,0.85)'
+          ctx.shadowColor = 'rgba(198,255,91,0.85)'
           ctx.fill()
           ctx.restore()
         }
@@ -687,8 +690,8 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           ctx.beginPath()
           ctx.arc(s.x, s.y, 1.4, 0, Math.PI * 2)
           ctx.fillStyle = a > 0.5
-            ? `rgba(255,255,255,${a * 0.85})`
-            : `rgba(255,0,200,${a * 0.75})`
+            ? `rgba(255,255,210,${a * 0.85})`
+            : `rgba(69,182,73,${a * 0.75})`
           ctx.fill()
         }
 
@@ -728,19 +731,19 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           const f = fragments[i]
           const px = f.x;  const py = f.y
           f.x += f.vx;  f.y += f.vy
-          f.vx *= 0.91;  f.vy *= 0.92
-          f.life -= 0.020
+          f.vx *= 0.93;  f.vy *= 0.94
+          f.life -= 0.014
           if (f.life <= 0) { fragments.splice(i, 1); continue }
           const a  = f.life / f.ml
           ctx.save()
           ctx.beginPath()
           ctx.moveTo(px, py)
           ctx.lineTo(f.x, f.y)
-          ctx.lineWidth   = 1 + a * 1.8
-          ctx.strokeStyle = `rgba(255,${Math.floor(a*50)},${Math.floor(a*185)},${a*0.88})`
+          ctx.lineWidth   = 1.2 + a * 2.2
+          ctx.strokeStyle = `rgba(${Math.floor(69+a*151)},${Math.floor(182+a*45)},${Math.floor(73-a*42)},${a*0.88})`
           ctx.lineCap     = 'round'
           ctx.shadowBlur  = 7
-          ctx.shadowColor = 'rgba(255,0,200,0.6)'
+          ctx.shadowColor = 'rgba(69,182,73,0.6)'
           ctx.stroke()
           ctx.restore()
         }
@@ -753,15 +756,15 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           w.vx += w.k
           w.x  += w.vx;  w.y += w.vy
           w.vy *= 0.97
-          w.life -= 0.014
+          w.life -= 0.010
           if (w.life <= 0) { wisps.splice(i, 1); continue }
           const a = w.life / w.ml
           ctx.save()
           ctx.beginPath()
-          ctx.arc(w.x, w.y, 3 + a * 4.5, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(175,0,205,${a * a * 0.48})`
+          ctx.arc(w.x, w.y, 4 + a * 7, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(69,182,73,${a * a * 0.65})`
           ctx.shadowBlur  = 13
-          ctx.shadowColor = 'rgba(210,0,220,0.55)'
+          ctx.shadowColor = 'rgba(120,200,73,0.55)'
           ctx.fill()
           ctx.restore()
         }
@@ -776,7 +779,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           if (e.life <= 0) { embers.splice(i, 1); continue }
           ctx.beginPath()
           ctx.arc(e.x, e.y, 1.5, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(185,0,165,${(e.life/e.ml)*0.28})`
+          ctx.fillStyle = `rgba(69,150,73,${(e.life/e.ml)*0.28})`
           ctx.fill()
         }
 
@@ -800,15 +803,58 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           ctx.globalAlpha = Math.random() * 0.14 * (1 - pt)
           traceCrescent()
           ctx.lineWidth   = 1
-          ctx.strokeStyle = 'rgba(255,0,175,0.7)'
+          ctx.strokeStyle = 'rgba(198,255,31,0.7)'
           ctx.shadowBlur  = 10
-          ctx.shadowColor = 'rgba(255,0,200,0.9)'
+          ctx.shadowColor = 'rgba(198,255,31,0.9)'
           ctx.stroke()
           ctx.restore()
         }
 
+        // Lingering fragments carry over from Phase 3, fade out gently
+        for (let i = fragments.length - 1; i >= 0; i--) {
+          const f  = fragments[i]
+          const px = f.x; const py = f.y
+          f.x += f.vx; f.y += f.vy
+          f.vx *= 0.96; f.vy *= 0.96
+          f.life -= 0.010
+          if (f.life <= 0) { fragments.splice(i, 1); continue }
+          const a = (f.life / f.ml) * (1 - pt * 0.8)
+          if (a < 0.004) continue
+          ctx.save()
+          ctx.beginPath()
+          ctx.moveTo(px, py)
+          ctx.lineTo(f.x, f.y)
+          ctx.lineWidth   = 1 + a * 1.4
+          ctx.strokeStyle = `rgba(${Math.floor(69+a*151)},${Math.floor(182+a*45)},${Math.floor(73-a*42)},${a * 0.70})`
+          ctx.lineCap     = 'round'
+          ctx.shadowBlur  = 5
+          ctx.shadowColor = 'rgba(69,182,73,0.45)'
+          ctx.stroke()
+          ctx.restore()
+        }
+
+        // Lingering wisps carry over from Phase 3, drift and fade
+        for (let i = wisps.length - 1; i >= 0; i--) {
+          const w = wisps[i]
+          w.vx += w.k
+          w.x += w.vx; w.y += w.vy
+          w.vy *= 0.97
+          w.life -= 0.011
+          if (w.life <= 0) { wisps.splice(i, 1); continue }
+          const a = (w.life / w.ml) * (1 - pt * 0.85)
+          if (a < 0.004) continue
+          ctx.save()
+          ctx.beginPath()
+          ctx.arc(w.x, w.y, 3 + a * 5, 0, Math.PI * 2)
+          ctx.fillStyle   = `rgba(69,182,73,${a * a * 0.50})`
+          ctx.shadowBlur  = 9
+          ctx.shadowColor = 'rgba(120,200,73,0.40)'
+          ctx.fill()
+          ctx.restore()
+        }
+
         // Drifting embers persist
-        if (Math.random() < 0.18) spawnEmber()
+        if (Math.random() < 0.25) spawnEmber()
         for (let i = embers.length - 1; i >= 0; i--) {
           const e = embers[i]
           e.x += e.vx;  e.y += e.vy - 0.14
@@ -816,7 +862,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           if (e.life <= 0) { embers.splice(i, 1); continue }
           ctx.beginPath()
           ctx.arc(e.x, e.y, 1.2, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(205,0,175,${(e.life/e.ml)*0.23})`
+          ctx.fillStyle = `rgba(69,150,73,${(e.life/e.ml)*0.23})`
           ctx.fill()
         }
 
@@ -829,7 +875,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
       // ════════════════════════════════════════════════════════════
       } else if (elapsed < REVEAL_END) {
         const pt         = (elapsed - HOLD_END) / (REVEAL_END - HOLD_END)
-        const smokeAlpha = Math.max(0, Math.pow(1 - pt, 0.72))
+        const smokeAlpha = Math.max(0, Math.pow(1 - pt, 0.38))
         const fadeAlpha  = 1 - smokeAlpha  // how much to erode the base fill
 
         // ── Uniform opacity reduction via destination-out ─────────────
@@ -853,7 +899,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
             n.x += n.vx
             n.y += n.vy
             if (pt <= n.t0) continue
-            const np = Math.min(1, (pt - n.t0) / 0.32)
+            const np = Math.min(1, (pt - n.t0) / 0.55)
             const r  = easeOut(np) * n.maxR
             if (r < 0.8) continue
             const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r)
@@ -885,7 +931,7 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
           e.x += e.vx;  e.y += e.vy
           e.life -= 0.007
           if (e.life <= 0) { embers.splice(i, 1); continue }
-          const a = (e.life / e.ml) * smokeAlpha * 0.12
+          const a = (e.life / e.ml) * smokeAlpha * 0.20
           if (a < 0.004) continue
           ctx.beginPath()
           ctx.arc(e.x, e.y, 2.2, 0, Math.PI * 2)
@@ -902,6 +948,10 @@ export function BankaiTransitionProvider({ children }: { children: React.ReactNo
         ctx.fillRect(0, 0, W, H)
         ctx.restore()
       } else {
+        // Clear the black fill from the top of this frame before unmounting.
+        // Without this, the canvas stays solid black for one React render cycle
+        // between here and the div being removed, causing a visible flicker.
+        ctx.clearRect(0, 0, W, H)
         setActive(false)
         return
       }

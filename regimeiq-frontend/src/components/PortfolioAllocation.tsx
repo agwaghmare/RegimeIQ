@@ -39,35 +39,33 @@ export function PortfolioAllocation({ allocation, regime }: Props) {
   return (
     <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 shadow-sm">
       <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Suggested Allocation</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4 items-center">
-        <div className="mx-auto">
-          <svg viewBox="0 0 160 160" width={140} height={140}>
-            <circle cx={80} cy={80} r={50} fill="none" stroke="currentColor" strokeWidth={22} className="text-surface-container-highest" />
-            {withAngles.map((seg) => (
-              <path
-                key={seg.key}
-                d={arcPath(80, 80, 50, seg.start, seg.end)}
-                fill="none"
-                stroke={seg.color}
-                strokeWidth={22}
-              />
-            ))}
-            <text x={80} y={78} textAnchor="middle" className="fill-on-surface-variant" fontSize={9}>Regime Mix</text>
-            <text x={80} y={94} textAnchor="middle" className="fill-on-surface" fontSize={13} fontWeight={700}>{regime}</text>
-          </svg>
-        </div>
-        <div className="space-y-4">
+      <div className="flex flex-col items-center gap-4">
+        <svg viewBox="0 0 160 160" width={120} height={120}>
+          <circle cx={80} cy={80} r={50} fill="none" stroke="currentColor" strokeWidth={22} className="text-surface-container-highest" />
+          {withAngles.map((seg) => (
+            <path
+              key={seg.key}
+              d={arcPath(80, 80, 50, seg.start, seg.end)}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={22}
+            />
+          ))}
+          <text x={80} y={78} textAnchor="middle" className="fill-on-surface-variant" fontSize={9}>Regime Mix</text>
+          <text x={80} y={94} textAnchor="middle" className="fill-on-surface" fontSize={13} fontWeight={700}>{regime}</text>
+        </svg>
+        <div className="w-full space-y-3">
           {withAngles.map((seg) => (
             <div key={seg.key} className="space-y-1.5">
-              <div className="flex justify-between text-[11px]">
-                <span className="font-medium">{seg.label}</span>
-                <span className="font-bold tabular-nums" style={{ color: seg.color }}>{Math.round(seg.pct * 100)}%</span>
+              <div className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="font-medium whitespace-nowrap">{seg.label}</span>
+                <span className="font-bold tabular-nums shrink-0" style={{ color: seg.color }}>{Math.round(seg.pct * 100)}%</span>
               </div>
               <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.round(seg.pct * 100)}%`, backgroundColor: seg.color }}
-                ></div>
+                />
               </div>
             </div>
           ))}
