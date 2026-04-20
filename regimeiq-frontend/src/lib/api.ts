@@ -101,20 +101,6 @@ export interface HistoricalInsightsResponse {
   }
 }
 
-export interface ForecastResponse {
-  transition_matrix: Record<string, Record<string, number>>
-  projected_regimes: {
-    t1m: Record<string, number>
-    t3m: Record<string, number>
-    t6m: Record<string, number>
-  }
-  score_trajectory: Array<{ date: string; total_score: number; regime: string }>
-  signal_momentum: Record<string, { value: number; change_3m: number; direction: 'up' | 'down' | 'flat' }>
-  current_streak: { regime: string; start_date: string; days: number }
-  avg_duration_days: Record<string, number>
-  score_forecast?: Array<{ date: string; predicted_score: number; lo: number; hi: number }>
-}
-
 export interface RiskLabResponse {
   breakdown: {
     growth: { score: number; max: number }
@@ -131,6 +117,20 @@ export interface RiskLabResponse {
   current_drawdown: number
   crash_probability: number
   risk_drivers: string[]
+}
+
+export interface ForecastResponse {
+  transition_matrix: Record<string, Record<string, number>>
+  projected_regimes: {
+    t1m: Record<string, number>
+    t3m: Record<string, number>
+    t6m: Record<string, number>
+  }
+  score_trajectory: Array<{ date: string; total_score: number; regime: string }>
+  signal_momentum: Record<string, { value: number; change_3m: number; direction: 'up' | 'down' | 'flat' }>
+  current_streak: { regime: string; start_date: string; days: number }
+  avg_duration_days: Record<string, number>
+  score_forecast?: Array<{ date: string; predicted_score: number; lo: number; hi: number }>
 }
 
 function scaleToFour(s: { score: number; max: number }): number {
@@ -291,6 +291,9 @@ export const api = {
   getRiskLab: async (): Promise<RiskLabResponse> => {
     return getJson<RiskLabResponse>('/regime/risk-lab')
   },
+  getForecast: async (): Promise<ForecastResponse> => {
+    return getJson<ForecastResponse>('/regime/forecast')
+  },
   getNews: async (topics: string[] = []): Promise<NewsPayload> => {
     const q = topics.length > 0 ? `?topics=${encodeURIComponent(topics.join(','))}` : ''
     return getJson<NewsPayload>(`/news/${q}`)
@@ -303,9 +306,6 @@ export const api = {
   getSnapshot: async (date: string): Promise<RegimeData> => {
     const raw = await getJson<RegimeApiResponse>(`/regime/snapshot?date=${encodeURIComponent(date)}`)
     return mapApiToRegimeData(raw)
-  },
-  getForecast: async (): Promise<ForecastResponse> => {
-    return getJson<ForecastResponse>('/regime/forecast')
   },
   downloadExport: async (): Promise<void> => {
     const res = await fetch(url('/regime/export'))

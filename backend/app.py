@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.router import api_router
+from services.model_service import ensure_model_trained
 
 # Allowed origins (frontend URLs)
 CORS_ORIGINS = [
@@ -13,6 +14,10 @@ CORS_ORIGINS = [
 ]
 
 app = FastAPI(title="RegimeIQ API")
+
+@app.on_event("startup")
+def startup():
+    ensure_model_trained()
 
 # ----- CORS Middleware -----
 app.add_middleware(

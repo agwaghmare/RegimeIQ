@@ -39,22 +39,24 @@ export function PortfolioAllocation({ allocation, regime }: Props) {
   return (
     <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 shadow-sm">
       <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">Suggested Allocation</h3>
-      <div className="flex flex-col items-center gap-4">
-        <svg viewBox="0 0 160 160" width={120} height={120}>
-          <circle cx={80} cy={80} r={50} fill="none" stroke="currentColor" strokeWidth={22} className="text-surface-container-highest" />
-          {withAngles.map((seg) => (
-            <path
-              key={seg.key}
-              d={arcPath(80, 80, 50, seg.start, seg.end)}
-              fill="none"
-              stroke={seg.color}
-              strokeWidth={22}
-            />
-          ))}
-          <text x={80} y={78} textAnchor="middle" className="fill-on-surface-variant" fontSize={9}>Regime Mix</text>
-          <text x={80} y={94} textAnchor="middle" className="fill-on-surface" fontSize={13} fontWeight={700}>{regime}</text>
-        </svg>
-        <div className="w-full space-y-3">
+      <div className="flex flex-row items-center gap-6">
+        <div className="shrink-0">
+          <svg viewBox="0 0 160 160" width={130} height={130}>
+            <circle cx={80} cy={80} r={50} fill="none" stroke="currentColor" strokeWidth={22} className="text-surface-container-highest" />
+            {withAngles.map((seg) => (
+              <path
+                key={seg.key}
+                d={arcPath(80, 80, 50, seg.start, seg.end)}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={22}
+              />
+            ))}
+            <text x={80} y={78} textAnchor="middle" className="fill-on-surface-variant" fontSize={9}>Regime Mix</text>
+            <text x={80} y={94} textAnchor="middle" className="fill-on-surface" fontSize={13} fontWeight={700}>{regime}</text>
+          </svg>
+        </div>
+        <div className="flex-1 space-y-3">
           {withAngles.map((seg) => (
             <div key={seg.key} className="space-y-1.5">
               <div className="flex items-center justify-between gap-2 text-[11px]">

@@ -281,7 +281,7 @@ def get_regime_snapshot() -> dict:
         "regime": regime,
         "probability": probability,
         "total_score": total,
-        "max_score": 16.0,
+        "max_score": 10.0,
         "scores": {
             "growth": growth,
             "inflation": inflation,
