@@ -66,40 +66,52 @@ export function RegimeBreakdown({ regime, probability, total_score, max_score, s
       </div>
 
       <div className="mt-8">
-        <div className="text-[10px] uppercase font-bold tracking-widest mb-3 text-on-surface-variant">Score Contributors</div>
-        <div className="h-6 w-full flex rounded overflow-hidden gap-px">
-          {total > 0 && [
-            { label: 'G', val: scores.growth,                color: CONTRIBUTOR_COLORS[0] },
-            { label: 'I', val: scores.inflation,             color: CONTRIBUTOR_COLORS[1] },
-            { label: 'F', val: scores.financial_conditions,  color: CONTRIBUTOR_COLORS[2] },
-            { label: 'M', val: scores.market_risk,           color: CONTRIBUTOR_COLORS[3] },
-          ].map((seg) => (
-            <div
-              key={seg.label}
-              className="h-full flex items-center justify-center text-[9px] font-bold text-white"
-              style={{ width: `${(seg.val / total) * 100}%`, background: seg.color }}
-            >
-              {seg.label}
-            </div>
-          ))}
+        <div className="text-[10px] uppercase font-bold tracking-widest mb-4 text-on-surface-variant">Score Contributors</div>
+        {/* Segmented bar with gaps and rounded caps */}
+        <div className="relative h-2 w-full flex rounded-full overflow-hidden gap-0.5 bg-surface-container-highest">
+          {(() => {
+            const segs = [
+              { label: 'G', val: scores.growth,               color: CONTRIBUTOR_COLORS[0] },
+              { label: 'I', val: scores.inflation,            color: CONTRIBUTOR_COLORS[1] },
+              { label: 'F', val: scores.financial_conditions, color: CONTRIBUTOR_COLORS[2] },
+              { label: 'M', val: scores.market_risk,          color: CONTRIBUTOR_COLORS[3] },
+            ]
+            if (total === 0) return <div className="h-full w-full rounded-full bg-surface-container-high opacity-30" />
+            return segs.filter(s => s.val > 0).map((seg) => (
+              <div
+                key={seg.label}
+                className="h-full transition-all duration-700"
+                style={{
+                  width: `${(seg.val / total) * 100}%`,
+                  background: seg.color,
+                  boxShadow: `0 0 8px ${seg.color}88`,
+                }}
+              />
+            ))
+          })()}
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-3 text-[9px] text-on-surface-variant">
+        {/* Legend — refined rows */}
+        <div className="mt-4 space-y-2">
           {[
-            { label: 'Growth',    val: scores.growth,                color: CONTRIBUTOR_COLORS[0] },
-            { label: 'Inflation', val: scores.inflation,             color: CONTRIBUTOR_COLORS[1] },
-            { label: 'Financial', val: scores.financial_conditions,  color: CONTRIBUTOR_COLORS[2] },
-            { label: 'Market',    val: scores.market_risk,           color: CONTRIBUTOR_COLORS[3] },
+            { label: 'Growth',    val: scores.growth,               color: CONTRIBUTOR_COLORS[0], max: 4 },
+            { label: 'Inflation', val: scores.inflation,            color: CONTRIBUTOR_COLORS[1], max: 4 },
+            { label: 'Financial', val: scores.financial_conditions, color: CONTRIBUTOR_COLORS[2], max: 4 },
+            { label: 'Market',    val: scores.market_risk,          color: CONTRIBUTOR_COLORS[3], max: 4 },
           ].map((s) => (
-            <div key={s.label} className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
-              {s.label} ({s.val.toFixed(1)})
+            <div key={s.label} className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color, boxShadow: `0 0 4px ${s.color}` }} />
+              <span className="text-[10px] text-on-surface-variant w-14">{s.label}</span>
+              <div className="flex-1 h-px rounded-full bg-surface-container-highest overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(s.val / s.max) * 100}%`, background: s.color, opacity: 0.7 }} />
+              </div>
+              <span className="text-[10px] tabular-nums text-on-surface-variant w-8 text-right">{s.val.toFixed(1)}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="mt-4 text-[9px] text-on-surface-variant text-right">
-        Probability:{' '}
+        Stress Level:{' '}
         <span className="font-bold" style={{ color: 'var(--accent)' }}>{Math.round(probability * 100)}%</span>
       </div>
     </div>

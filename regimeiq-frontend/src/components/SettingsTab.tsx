@@ -158,19 +158,27 @@ export function SettingsTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20 space-y-4">
           <div className="text-xs uppercase tracking-widest text-on-surface-variant">Risk Preference</div>
-          <input
-            type="range"
-            min={0}
-            max={2}
-            step={1}
-            value={currentRiskIdx}
-            onChange={(e) => {
-              const idx = Number(e.target.value)
-              const picked = RISK_ORDER[idx] ?? 'moderate'
-              setSettings((prev) => ({ ...prev, riskTolerance: picked }))
-            }}
-            className="w-full accent-primary"
-          />
+          <div className="relative h-2 rounded-full bg-surface-container-highest overflow-hidden">
+            {/* filled portion only up to current position */}
+            <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300" style={{
+              width: `${((currentRiskIdx + 1) / 3) * 100}%`,
+              background: 'linear-gradient(90deg, hsla(94,100%,70%,1) 0%, hsla(0,100%,77%,1) 100%)',
+            }} />
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={1}
+              value={currentRiskIdx}
+              onChange={(e) => {
+                const idx = Number(e.target.value)
+                const picked = RISK_ORDER[idx] ?? 'moderate'
+                setSettings((prev) => ({ ...prev, riskTolerance: picked }))
+              }}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+              style={{ zIndex: 2 }}
+            />
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {RISK_ORDER.map((r) => {
               const active = settings.riskTolerance === r
@@ -263,16 +271,16 @@ export function SettingsTab() {
         <div className="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
           <div className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Asset Purpose Guide</div>
           <div className="space-y-2 text-xs">
-            <div className="rounded border border-outline-variant/20 bg-surface-container-high px-3 py-2">
-              <div className="font-semibold">Equities</div>
+            <div className="rounded border bg-surface-container-high px-3 py-2" style={{ borderColor: '#3b82f680', borderLeftWidth: 3, borderLeftColor: '#3b82f6' }}>
+              <div className="font-semibold" style={{ color: '#3b82f6' }}>Equities</div>
               <div className="text-on-surface-variant">Primary growth engine and participation in risk-on expansions.</div>
             </div>
-            <div className="rounded border border-outline-variant/20 bg-surface-container-high px-3 py-2">
-              <div className="font-semibold">Bonds</div>
+            <div className="rounded border bg-surface-container-high px-3 py-2" style={{ borderColor: '#22c55e80', borderLeftWidth: 3, borderLeftColor: '#22c55e' }}>
+              <div className="font-semibold" style={{ color: '#22c55e' }}>Bonds</div>
               <div className="text-on-surface-variant">Stability anchor and drawdown dampener during risk-off regimes.</div>
             </div>
-            <div className="rounded border border-outline-variant/20 bg-surface-container-high px-3 py-2">
-              <div className="font-semibold">Commodities / Gold</div>
+            <div className="rounded border bg-surface-container-high px-3 py-2" style={{ borderColor: '#f59e0b80', borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
+              <div className="font-semibold" style={{ color: '#f59e0b' }}>Commodities / Gold</div>
               <div className="text-on-surface-variant">Inflation hedge and diversification when financial conditions tighten.</div>
             </div>
           </div>

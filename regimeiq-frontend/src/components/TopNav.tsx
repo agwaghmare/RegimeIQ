@@ -3,6 +3,7 @@ interface Props {
   probability: number
   isLive?: boolean
   dataDate?: string | null
+  onHome?: () => void
 }
 
 function formatDataDate(dataDate: string | null | undefined): string {
@@ -14,7 +15,7 @@ function formatDataDate(dataDate: string | null | undefined): string {
   return `Data as of ${dataDate}`
 }
 
-export function TopNav({ regime, probability, isLive = false, dataDate = null }: Props) {
+export function TopNav({ regime, probability, isLive = false, dataDate = null, onHome }: Props) {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center w-full px-6 py-3 max-w-[1920px] mx-auto font-['Inter'] tabular-nums text-sm antialiased"
@@ -26,7 +27,22 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null }:
       }}
     >
       <div className="flex items-center gap-8">
-        <span className="text-lg font-black tracking-tighter text-white">RegimeIQ</span>
+        {/* Logo + wordmark */}
+        <button
+          onClick={onHome}
+          className="flex items-center gap-2 group focus:outline-none"
+          title="Go to Dashboard"
+        >
+          <img
+            src="/logo.png"
+            alt="RegimeIQ logo"
+            className="h-7 w-7 object-contain transition-transform duration-200 group-hover:scale-110"
+          />
+          <span className="text-lg font-black tracking-tighter text-white group-hover:opacity-80 transition-opacity">
+            RegimeIQ
+          </span>
+        </button>
+
         <nav className="hidden md:flex gap-6">
           <a
             className="font-semibold pb-1 text-white"
@@ -35,7 +51,7 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null }:
           >
             Current
           </a>
-          <a className="text-[#9aa2ac] hover:text-white transition-colors" href="#">Forecast</a>
+          <a className="hover:text-white transition-colors" href="#" style={{ color: 'var(--color-muted)' }}>Forecast</a>
         </nav>
       </div>
 
@@ -48,12 +64,12 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null }:
           <span className="h-2 w-2 rounded-full" style={{ background: 'var(--accent)' }} />
         </div>
 
-        <div className="text-xs font-medium flex items-center gap-1 text-[#9aa2ac]">
-          <span>Prob:</span>
+        <div className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--color-muted)' }}>
+          <span>Stress Level:</span>
           <span className="font-black text-white">{Math.round(probability * 100)}%</span>
         </div>
 
-        <div className="text-xs flex items-center gap-2 text-[#9aa2ac]">
+        <div className="text-xs flex items-center gap-2" style={{ color: 'var(--color-muted)' }}>
           <span
             className={`h-2 w-2 rounded-full ${isLive ? 'live-blink' : ''}`}
             style={{ background: isLive ? 'var(--accent)' : '#ef4444' }}

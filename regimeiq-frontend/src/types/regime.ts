@@ -22,6 +22,7 @@ export interface Allocation {
 }
 
 export interface GlobalMacroSnapshot {
+  fed_funds: number | null
   fed_funds_3m_change: number | null
   real_rate_10y: number | null
   cpi_yoy: number | null

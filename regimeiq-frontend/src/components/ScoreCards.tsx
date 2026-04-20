@@ -35,8 +35,8 @@ function scoreColor(value: number): string {
 }
 
 function metricTone(value: number): { label: string; hint: string } {
-  if (value >= 3.2) return { label: 'Elevated', hint: 'Watch closely' }
-  if (value >= 2.2) return { label: 'Moderate', hint: 'Within range' }
+  if (value >= 3) return { label: 'Elevated', hint: 'Watch closely' }
+  if (value >= 2) return { label: 'Moderate', hint: 'Within range' }
   return { label: 'Stable', hint: 'Low stress' }
 }
 

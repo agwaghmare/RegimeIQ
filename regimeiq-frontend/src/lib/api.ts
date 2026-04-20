@@ -81,6 +81,8 @@ export interface GlobalMacroHistoryResponse {
     uk_10y_gilt_yield: MacroHistorySeries
     us_real_10y: MacroHistorySeries
   }
+  scatter: Array<{ year: number; real_yield: number; sp500_yoy: number }>
+  cb_stats: Record<string, { current: number | null; pct: number | null; min: number | null; max: number | null; change_3m: number | null }>
 }
 
 export interface HistoricalInsightsResponse {

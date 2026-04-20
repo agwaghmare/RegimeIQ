@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useBankaiTransition } from './BankaiTransition'
+import { StarfallBackground } from './StarfallBackground'
 
 interface IntroScreenProps {
   onContinue: () => void
@@ -27,10 +28,11 @@ interface Dust {
   gravity: number
 }
 
+// Dashboard accent: lime #c6ff1f — all sparks pull from this palette
 const SPARK_COLORS = [
-  'rgba(245,158,11,',   // amber
-  'rgba(103,232,249,',  // cyan
-  'rgba(200,214,229,',  // silver-blue
+  'rgba(198,255,31,',   // primary lime
+  'rgba(255,255,255,',  // white-hot
+  'rgba(160,220,20,',   // deeper lime
 ]
 
 const COUNT = 48
@@ -42,24 +44,29 @@ const STYLES = `
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  @keyframes riq-pulse {
-    0%, 100% { opacity: 0.38; }
-    50%       { opacity: 0.7;  }
-  }
   @keyframes riq-float {
     0%, 100% { transform: translateY(0px);  }
-    50%      { transform: translateY(-4px); }
+    50%      { transform: translateY(-5px); }
   }
   @keyframes riq-ripple {
-    from { width: 0px; height: 0px; opacity: 0.9; margin: 0; }
+    from { width: 0px; height: 0px; opacity: 0.7; margin: 0; }
     to   { width: 100px; height: 100px; opacity: 0; margin: -50px; }
   }
+  @keyframes riq-logo-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes riq-bloom {
+    0%, 100% { opacity: 0.14; transform: scale(1);    }
+    50%      { opacity: 0.28; transform: scale(1.18); }
+  }
+
   .riq-ripple {
     position: absolute;
     border-radius: 50%;
-    border: 2px solid var(--riq-ripple-color, white);
-    background: color-mix(in srgb, var(--riq-ripple-color, white) 15%, transparent);
-    box-shadow: 0 0 12px 2px color-mix(in srgb, var(--riq-ripple-color, white) 40%, transparent);
+    border: 1px solid rgba(198,255,31,0.45);
+    background: rgba(198,255,31,0.025);
+    box-shadow: 0 0 10px 1px rgba(198,255,31,0.10);
     pointer-events: none;
     animation: riq-ripple 700ms ease-out forwards;
   }
@@ -68,11 +75,7 @@ const STYLES = `
     position: fixed; inset: 0; z-index: 50;
     display: flex; align-items: center; justify-content: center;
     user-select: none;
-    background:
-      radial-gradient(ellipse 100% 80% at 50% 40%,
-        #0e1a26 0%,
-        #07101a 45%,
-        #020608 100%);
+    background: #000;
   }
 
   .riq-content {
@@ -83,95 +86,146 @@ const STYLES = `
     animation: riq-in 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
   }
 
-  .riq-title-group {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 0.7rem;
+  .riq-logo-lockup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
     animation: riq-float 9s ease-in-out infinite;
   }
 
-  .riq-overline {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.5rem;
-    font-weight: 300;
-    letter-spacing: 0.58em;
-    text-transform: uppercase;
-    color: rgba(245, 158, 11, 0.55);
-    animation: riq-pulse 4.5s ease-in-out infinite;
+  /* Bloom wrapper — positions the pulsing glow behind the logo */
+  .riq-logo-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
+  /* Animated bloom: lime radial gradient that pulses like a light source */
+  .riq-logo-bloom {
+    position: absolute;
+    inset: -55%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(198,255,31,0.45) 0%,
+      rgba(198,255,31,0.12) 38%,
+      transparent 68%
+    );
+    animation: riq-bloom 5.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .riq-logo-img {
+    position: relative;
+    z-index: 1;
+    width: 108px;
+    height: 108px;
+    object-fit: contain;
+    /* mix-blend-mode: lighten makes black pixels transparent on dark bg */
+    mix-blend-mode: lighten;
+    filter: drop-shadow(0 0 22px rgba(198,255,31,0.35));
+  }
+
+  /* –15% scale vs original clamp(3.2rem,9vw,6.8rem) */
   .riq-title {
     font-family: 'Syne', sans-serif;
-    font-size: clamp(3.4rem, 9.5vw, 7.2rem);
+    font-size: clamp(2.72rem, 7.65vw, 5.78rem);
     font-weight: 800;
-    letter-spacing: -0.025em;
-    line-height: 0.93;
-    color: #eef2f7;
+    letter-spacing: -0.03em;
+    line-height: 0.92;
+    color: #e7e4ec;
     text-align: center;
-    /* Subtle luminosity layering */
     text-shadow:
-      0 0 80px rgba(245, 158, 11, 0.04),
+      0 0 60px rgba(198, 255, 31, 0.06),
       0 1px 0 rgba(255,255,255,0.04);
   }
 
-  .riq-divider {
-    width: 1px;
-    height: 38px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(245, 158, 11, 0.28) 40%,
-      rgba(245, 158, 11, 0.28) 60%,
-      transparent
-    );
-  }
-
-  /* Button */
+  /* CTA — full lime border, ambient glow at rest, intensifies on hover */
   .riq-btn {
     position: relative;
-    padding: 0.82rem 2.6rem;
+    padding: 0.78rem 2.8rem;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 400;
-    letter-spacing: 0.42em;
+    letter-spacing: 0.44em;
     text-transform: uppercase;
-    color: rgba(238, 242, 247, 0.72);
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(238, 242, 247, 0.12);
+    color: rgba(198, 255, 31, 0.82);
+    background: rgba(198, 255, 31, 0.04);
+    border: 1px solid #c6ff1f;
     border-radius: 2px;
     cursor: pointer;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      0 0 10px rgba(198,255,31,0.08),
+      0 0 2px  rgba(198,255,31,0.12);
     transition:
       transform    0.4s  cubic-bezier(0.34, 1.56, 0.64, 1),
-      color        0.25s ease,
-      border-color 0.25s ease,
-      background   0.25s ease,
-      box-shadow   0.25s ease;
+      color        0.22s ease,
+      background   0.22s ease,
+      box-shadow   0.28s ease;
   }
   .riq-btn:hover {
-    transform: scale(1.035);
-    color: rgba(238, 242, 247, 0.95);
-    border-color: rgba(245, 158, 11, 0.35);
-    background: rgba(245, 158, 11, 0.03);
+    transform: scale(1.03);
+    color: #c6ff1f;
+    background: rgba(198, 255, 31, 0.07);
     box-shadow:
-      0 0 28px rgba(245, 158, 11, 0.07),
-      inset 0 0 12px rgba(245, 158, 11, 0.02);
+      0 0 28px rgba(198,255,31,0.28),
+      0 0 56px rgba(198,255,31,0.12),
+      0 0  4px rgba(198,255,31,0.20),
+      inset 0 0 14px rgba(198,255,31,0.04);
   }
   .riq-btn:active {
     transform: scale(0.975);
     transition-duration: 0.1s;
   }
 
-  /* Corner labels */
+  /* Footer — wider kerning, 50% white */
   .riq-meta {
     position: absolute;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.46rem;
-    letter-spacing: 0.2em;
+    font-size: 0.44rem;
+    letter-spacing: 0.45em;
     text-transform: uppercase;
-    color: rgba(22, 50, 80, 0.75);
+    color: rgba(255, 255, 255, 0.5);
     pointer-events: none;
   }
+
+  /* Top-left nav lockup — hover transitions gray → white */
+  .riq-nav-logo {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    animation: riq-logo-in 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+    pointer-events: all;
+    cursor: default;
+  }
+
+  .riq-nav-logo img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    mix-blend-mode: lighten;
+    opacity: 0.7;
+    transition: opacity 0.22s ease;
+  }
+
+  .riq-nav-logo span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(155, 163, 173, 0.55);
+    transition: color 0.22s ease;
+  }
+
+  .riq-nav-logo:hover img  { opacity: 1; }
+  .riq-nav-logo:hover span { color: rgba(255, 255, 255, 0.9); }
 `
 
 export function IntroScreen({ onContinue }: IntroScreenProps) {
@@ -227,14 +281,13 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
       tick++
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      const mouse     = mouseRef.current
-      const cx        = canvas.width  / 2
-      const cy        = canvas.height / 2
+      const mouse      = mouseRef.current
+      const cx         = canvas.width  / 2
+      const cy         = canvas.height / 2
       const collapsing = collapseRef.current
 
       for (const p of ptRef.current) {
         if (collapsing) {
-          // Gentle, unhurried pull toward center
           const dx = cx - p.x
           const dy = cy - p.y
           const d  = Math.hypot(dx, dy) || 1
@@ -242,11 +295,9 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
           p.vy += (dy / d) * 0.009
           p.vx *= 0.965
           p.vy *= 0.965
-          // Fade out smoothly as they approach center
           const proximity = Math.max(0, 1 - d / (Math.hypot(canvas.width, canvas.height) * 0.5))
           p.opacity = Math.max(0, p.opacity - 0.003 - proximity * 0.006)
         } else {
-          // Soft mouse parallax repulsion
           const dx = p.x - mouse.x
           const dy = p.y - mouse.y
           const d  = Math.hypot(dx, dy)
@@ -257,7 +308,6 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
           }
           p.vx *= 0.982
           p.vy *= 0.982
-          // Wrap
           if (p.x < -6) p.x = canvas.width  + 6
           if (p.x > canvas.width  + 6) p.x = -6
           if (p.y < -6) p.y = canvas.height + 6
@@ -276,11 +326,12 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
 
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(200, 214, 229, ${alpha})`
+        // Particles: faint lime tint matching dashboard accent
+        ctx.fillStyle = `rgba(198, 255, 31, ${alpha * 0.55})`
         ctx.fill()
       }
 
-      // Very faint connection threads — barely visible, feels like a network at rest
+      // Connection threads — lime green at near-invisible opacity
       if (!collapsing) {
         const pts = ptRef.current
         for (let i = 0; i < pts.length; i++) {
@@ -290,7 +341,7 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
               ctx.beginPath()
               ctx.moveTo(pts[i].x, pts[i].y)
               ctx.lineTo(pts[j].x, pts[j].y)
-              ctx.strokeStyle = `rgba(148, 163, 184, ${(1 - d / 72) * 0.045})`
+              ctx.strokeStyle = `rgba(198, 255, 31, ${(1 - d / 72) * 0.035})`
               ctx.lineWidth = 0.35
               ctx.stroke()
             }
@@ -320,9 +371,8 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
 
     animRef.current = requestAnimationFrame(draw)
 
-    let rippleHue    = 0
     let rippleDist   = 0
-    const RIPPLE_GAP = 60 // px between ripples
+    const RIPPLE_GAP = 60
 
     const onMove = (e: MouseEvent) => {
       const prev = { x: mouseRef.current.x, y: mouseRef.current.y }
@@ -335,7 +385,6 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
       const dy    = e.clientY - prev.y
       const speed = Math.hypot(dx, dy)
 
-      // Sparks on any movement
       if (speed > 2.5) {
         const count = Math.min(Math.ceil(speed / 4), 5)
         for (let i = 0; i < count; i++) {
@@ -354,20 +403,17 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
         }
       }
 
-      // Rainbow ripple throttled by distance
+      // Lime ripple throttled by distance
       rippleDist += speed
       if (rippleDist >= RIPPLE_GAP) {
         rippleDist = 0
         const screen = screenRef.current
         if (screen) {
-          const rect  = screen.getBoundingClientRect()
-          const color = `hsl(${rippleHue}, 100%, 65%)`
-          rippleHue   = (rippleHue + 37) % 360
-          const el    = document.createElement('div')
+          const rect = screen.getBoundingClientRect()
+          const el   = document.createElement('div')
           el.className = 'riq-ripple'
           el.style.left = `${e.clientX - rect.left}px`
           el.style.top  = `${e.clientY - rect.top}px`
-          el.style.setProperty('--riq-ripple-color', color)
           screen.appendChild(el)
           setTimeout(() => { if (screen.contains(el)) screen.removeChild(el) }, 750)
         }
@@ -390,49 +436,62 @@ export function IntroScreen({ onContinue }: IntroScreenProps) {
 
   return (
     <div ref={screenRef} className="riq-screen">
+      {/* Starfall background — rendered once, never re-renders */}
+      <StarfallBackground />
+
       {/* Particle field */}
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
-      {/* Noise grain — atmosphere, not decoration */}
+      {/* Grain overlay — same as dashboard atmosphere */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
           backgroundSize: '180px 180px',
-          opacity: 0.55,
+          opacity: 0.45,
           mixBlendMode: 'overlay',
         }}
       />
 
-      {/* Faint radial vignette */}
+      {/* Subtle center glow — lime, very faint */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 70% 60% at 50% 50%, transparent 40%, rgba(2,6,8,0.55) 100%)',
+          background: 'radial-gradient(ellipse 55% 45% at 50% 50%, rgba(198,255,31,0.03) 0%, transparent 70%)',
         }}
       />
 
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 80% 70% at 50% 50%, transparent 35%, rgba(0,0,0,0.65) 100%)',
+        }}
+      />
+
+      {/* Top-left logo — mirrors TopNav positioning */}
+      <div className="riq-nav-logo">
+        <img src="/logo.png" alt="RegimeIQ" />
+        <span>RegimeIQ</span>
+      </div>
+
       {/* Content */}
       <div className="riq-content">
-        <div className="riq-title-group">
-          <span className="riq-overline">◆ &nbsp;Macro Intelligence</span>
+        <div className="riq-logo-lockup">
+          {/* Bloom glow sits behind logo; mix-blend-mode:lighten removes black bg */}
+          <div className="riq-logo-wrap">
+            <div className="riq-logo-bloom" />
+            <img src="/logo.png" alt="" className="riq-logo-img" />
+          </div>
           <h1 className="riq-title">RegimeIQ</h1>
         </div>
 
-        <div className="riq-divider" />
-
         <button className="riq-btn" onClick={handleExplore}>
-          Explore
+          Enter System
         </button>
       </div>
 
-      {/* Corner metadata — ambient, unobtrusive */}
-      <span className="riq-meta" style={{ top: '1.5rem', left: '1.75rem' }}>
-        SYS_INIT · 2026
-      </span>
-      <span className="riq-meta" style={{ top: '1.5rem', right: '1.75rem' }}>
-        v2.1.4
-      </span>
+      {/* Bottom center tag */}
       <span
         className="riq-meta"
         style={{ bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
