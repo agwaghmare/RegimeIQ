@@ -20,8 +20,8 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 
 export function PortfolioAllocation({ allocation, regime }: Props) {
   const segments = [
-    { key: 'eq',  label: 'Equities',      pct: allocation.equities,     color: '#3b82f6' },
-    { key: 'bd',  label: 'Fixed Income',  pct: allocation.bonds,        color: '#22c55e' },
+    { key: 'eq',  label: 'Equities',      pct: allocation.equities,     color: '#c6ff1f' },
+    { key: 'bd',  label: 'Fixed Income',  pct: allocation.bonds,        color: '#9ba3ad' },
     { key: 'alt', label: 'Alternatives',  pct: allocation.alternatives, color: '#f59e0b' },
   ]
   const eqDeg = segments[0].pct * 360
@@ -52,8 +52,8 @@ export function PortfolioAllocation({ allocation, regime }: Props) {
                 strokeWidth={22}
               />
             ))}
-            <text x={80} y={78} textAnchor="middle" className="fill-on-surface-variant" fontSize={9}>Regime Mix</text>
-            <text x={80} y={94} textAnchor="middle" className="fill-on-surface" fontSize={13} fontWeight={700}>{regime}</text>
+            <text x={80} y={76} textAnchor="middle" fill="#9ba3ad" fontSize={8} letterSpacing={1}>REGIME</text>
+            <text x={80} y={91} textAnchor="middle" fill="#ffffff" fontSize={11} fontWeight={800}>{regime}</text>
           </svg>
         </div>
         <div className="flex-1 space-y-3">
@@ -73,11 +73,11 @@ export function PortfolioAllocation({ allocation, regime }: Props) {
           ))}
         </div>
       </div>
-      <div className="mt-5 p-3 rounded bg-primary-container/20 border border-primary/10">
+      <div className="mt-5 p-3 rounded border" style={{ background: 'rgba(198,255,31,0.04)', borderColor: 'rgba(198,255,31,0.12)' }}>
         <div className="flex gap-2 items-start">
-          <span className="material-symbols-outlined text-primary text-sm">lightbulb</span>
-          <p className="text-[10px] leading-relaxed text-on-primary-container">
-            The current <span className="font-bold italic">{regime}</span> regime suggests {regimeLabel}
+          <span className="material-symbols-outlined text-sm" style={{ color: '#c6ff1f' }}>lightbulb</span>
+          <p className="text-[10px] leading-relaxed text-on-surface-variant">
+            The current <span className="font-bold italic" style={{ color: '#c6ff1f' }}>{regime}</span> regime suggests {regimeLabel}
           </p>
         </div>
       </div>
