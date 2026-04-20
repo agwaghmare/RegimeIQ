@@ -95,6 +95,7 @@ class SignalsResponse(BaseModel):
 
 
 class GlobalMacroSnapshot(BaseModel):
+    fed_funds: Optional[float] = None
     fed_funds_3m_change: Optional[float] = None
     real_rate_10y: Optional[float] = None
     cpi_yoy: Optional[float] = None

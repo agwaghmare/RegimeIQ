@@ -156,9 +156,9 @@ export function PortfolioTab({ allocation, regime }: Props) {
   const altDeg = target.alt * 360
 
   const segments = [
-    { key: 'eq', label: 'Equities', pct: target.eq, deg: eqDeg, start: 0, color: '#c8ced6' },
-    { key: 'bd', label: 'Fixed Income', pct: target.bd, deg: bdDeg, start: eqDeg, color: '#9aa2ad' },
-    { key: 'alt', label: 'Alternatives', pct: target.alt, deg: altDeg, start: eqDeg + bdDeg, color: '#747d89' },
+    { key: 'eq',  label: 'Equities',     pct: target.eq,  deg: eqDeg,  start: 0,            color: '#3b82f6' },
+    { key: 'bd',  label: 'Fixed Income', pct: target.bd,  deg: bdDeg,  start: eqDeg,         color: '#22c55e' },
+    { key: 'alt', label: 'Alternatives', pct: target.alt, deg: altDeg, start: eqDeg + bdDeg, color: '#f59e0b' },
   ]
 
   return (
@@ -255,21 +255,21 @@ export function PortfolioTab({ allocation, regime }: Props) {
           <AssetCard
             title="Equities"
             pct={target.eq}
-            color="#c8ced6"
+            color="#3b82f6"
             etfs={EQUITIES_ETFS}
             placeholder={plan?.buy_recommendations?.stocks?.length ? `Favor: ${plan.buy_recommendations.stocks.map((s) => s.ticker).join(', ')}` : 'Individual Stocks — Coming Soon'}
           />
           <AssetCard
             title="Fixed Income"
             pct={target.bd}
-            color="#9aa2ad"
+            color="#22c55e"
             etfs={BONDS_ETFS}
             placeholder={plan?.buy_recommendations?.bonds?.length ? `Favor: ${plan.buy_recommendations.bonds.map((s) => s.ticker).join(', ')}` : 'More Bond Options — Coming Soon'}
           />
           <AssetCard
             title="Alternatives"
             pct={target.alt}
-            color="#747d89"
+            color="#f59e0b"
             etfs={ALTS_ETFS}
             placeholder={plan?.buy_recommendations?.commodities?.length ? `Favor: ${plan.buy_recommendations.commodities.map((s) => s.ticker).join(', ')}` : 'Commodities, REITs, Crypto — Coming Soon'}
           />

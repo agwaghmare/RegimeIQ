@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useUser } from '../context/UserContext'
 import { canAccess, type View } from '../lib/tierAccess'
 
-type NavKey = 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical' | 'forecast'
+type NavKey = 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical'
 
 type NavItem = {
   icon: string
@@ -12,7 +12,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
-  { icon: 'insights', label: 'Forecast', key: 'forecast' },
   { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
   { icon: 'strategy', label: 'Strategy Desk', key: 'playbook' },
   { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },

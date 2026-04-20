@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { IntroScreen } from './components/IntroScreen'
 import { useRegime } from './hooks/useRegime'
 import { api } from './lib/api'
 import { TopNav } from './components/TopNav'
@@ -127,6 +128,8 @@ function trendArrow(t: MetricRow['trend']): string {
 export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
   const { user } = useUser()
+  const [showIntro, setShowIntro] = useState(true)
+  const handleIntroContinue = useCallback(() => setShowIntro(false), [])
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
   const [rawView, setRawView] = useState<View>('dashboard')
   const activeView: View = canAccess(user.plan, rawView) ? rawView : 'dashboard'
@@ -150,6 +153,10 @@ export default function App() {
 
   const handleExport = async () => {
     await api.downloadExport()
+  }
+
+  if (showIntro) {
+    return <IntroScreen onContinue={handleIntroContinue} />
   }
 
   if (loading) {

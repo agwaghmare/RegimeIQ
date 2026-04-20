@@ -107,6 +107,7 @@ def run_current_pipeline() -> dict:
             "fedwatch": fedwatch,
             "macro_release_calendar": next_macro_releases(),
             "global_macro": {
+                "fed_funds": _safe_num(latest.get("fed_funds")),
                 "fed_funds_3m_change": _safe_num(latest.get("fed_funds_3m_change")),
                 "real_rate_10y": _safe_num(latest.get("real_rate_10y")),
                 "cpi_yoy": _safe_num(latest.get("cpi_yoy")),
