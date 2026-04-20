@@ -43,16 +43,6 @@ export function TopNav({ regime, probability, isLive = false, dataDate = null, o
           </span>
         </button>
 
-        <nav className="hidden md:flex gap-6">
-          <a
-            className="font-semibold pb-1 text-white"
-            style={{ borderBottom: '2px solid var(--accent)' }}
-            href="#"
-          >
-            Current
-          </a>
-          <a className="hover:text-white transition-colors" href="#" style={{ color: 'var(--color-muted)' }}>Forecast</a>
-        </nav>
       </div>
 
       <div className="flex items-center gap-4">

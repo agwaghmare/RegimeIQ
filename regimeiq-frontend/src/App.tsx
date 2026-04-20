@@ -15,6 +15,8 @@ import { PlaybookTab } from './components/PlaybookTab'
 import { SettingsTab } from './components/SettingsTab'
 import { HistoricalTab } from './components/HistoricalTab'
 import { PortfolioTab } from './components/PortfolioTab'
+import { ForecastTab } from './components/ForecastTab'
+import { PricingTab } from './components/PricingTab'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -129,7 +131,7 @@ export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
   const [activeView, setActiveView] = useState<
-    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio'
+    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio' | 'forecast' | 'pricing'
   >('dashboard')
   const [showIntro, setShowIntro] = useState(() => {
     return sessionStorage.getItem('regimeiq_intro_seen') !== 'true'
@@ -258,6 +260,10 @@ export default function App() {
         <HistoricalTab />
       ) : activeView === 'portfolio' ? (
         <PortfolioTab allocation={data.allocation} regime={data.regime} />
+      ) : activeView === 'forecast' ? (
+        <ForecastTab regime={data.regime} fedwatch={data.fedwatch} releaseCalendar={data.macro_release_calendar} />
+      ) : activeView === 'pricing' ? (
+        <PricingTab />
       ) : (
         <main id="dashboard" className="ml-0 md:ml-64 pt-20 p-6 min-h-screen space-y-6 scroll-smooth">
           <section className={`rounded-2xl border border-outline-variant/20 bg-gradient-to-r ${hero.glow} via-surface-container to-surface-container p-6 shadow-[0_18px_44px_rgba(0,0,0,0.32)]`}>

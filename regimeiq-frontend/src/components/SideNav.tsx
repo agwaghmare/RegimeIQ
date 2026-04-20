@@ -3,7 +3,7 @@ import { useState } from 'react'
 type NavItem = {
   icon: string
   label: string
-  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'portfolio' | 'historical'
+  key: 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'portfolio' | 'historical' | 'forecast' | 'pricing'
 }
 
 const navItems: NavItem[] = [
@@ -14,6 +14,8 @@ const navItems: NavItem[] = [
   { icon: 'tune', label: 'Settings', key: 'settings' },
   { icon: 'pie_chart', label: 'Portfolio', key: 'portfolio' },
   { icon: 'history', label: 'Historical', key: 'historical' },
+  { icon: 'trending_up', label: 'Forecast', key: 'forecast' },
+  { icon: 'sell', label: 'Pricing', key: 'pricing' },
 ]
 
 interface Props {

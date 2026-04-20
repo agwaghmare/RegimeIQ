@@ -101,6 +101,20 @@ export interface HistoricalInsightsResponse {
   }
 }
 
+export interface ForecastResponse {
+  transition_matrix: Record<string, Record<string, number>>
+  projected_regimes: {
+    t1m: Record<string, number>
+    t3m: Record<string, number>
+    t6m: Record<string, number>
+  }
+  score_trajectory: Array<{ date: string; total_score: number; regime: string }>
+  signal_momentum: Record<string, { value: number; change_3m: number; direction: 'up' | 'down' | 'flat' }>
+  current_streak: { regime: string; start_date: string; days: number }
+  avg_duration_days: Record<string, number>
+  score_forecast?: Array<{ date: string; predicted_score: number; lo: number; hi: number }>
+}
+
 export interface RiskLabResponse {
   breakdown: {
     growth: { score: number; max: number }
@@ -289,6 +303,9 @@ export const api = {
   getSnapshot: async (date: string): Promise<RegimeData> => {
     const raw = await getJson<RegimeApiResponse>(`/regime/snapshot?date=${encodeURIComponent(date)}`)
     return mapApiToRegimeData(raw)
+  },
+  getForecast: async (): Promise<ForecastResponse> => {
+    return getJson<ForecastResponse>('/regime/forecast')
   },
   downloadExport: async (): Promise<void> => {
     const res = await fetch(url('/regime/export'))
