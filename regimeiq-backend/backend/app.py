@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.router import api_router
@@ -10,7 +12,16 @@ CORS_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-app = FastAPI(title="RegimeIQ API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Train LightGBM model on startup if not already trained
+    from services.model_service import ensure_model_trained
+    ensure_model_trained()
+    yield
+
+
+app = FastAPI(title="RegimeIQ API", lifespan=lifespan)
 
 # ----- CORS Middleware -----
 app.add_middleware(

@@ -65,10 +65,6 @@ def fetch_market_data(start="2005-01-01"):
                 df.columns = df.columns.get_level_values(0)
 
             df = df[["Close"]].rename(columns={"Close": name})
-            df = df.dropna()
-            if len(df) < 252:
-                print(f"[market] ✗ INSUFFICIENT {name} ({ticker}) — only {len(df)} rows, skipping")
-                continue
             data[name] = df
             print(f"[market] ✓ {name} ({ticker}) — {len(df)} rows")
 

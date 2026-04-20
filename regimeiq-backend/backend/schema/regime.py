@@ -95,6 +95,7 @@ class SignalsResponse(BaseModel):
 
 
 class GlobalMacroSnapshot(BaseModel):
+    fed_funds: Optional[float] = None
     fed_funds_3m_change: Optional[float] = None
     real_rate_10y: Optional[float] = None
     cpi_yoy: Optional[float] = None
@@ -134,7 +135,7 @@ class RegimeCurrentResponse(BaseModel):
     regime_color: str
     risk_level: int
     probability: float
-    total_score: int
+    total_score: float
     breakdown: BreakdownResponse
     allocation: AllocationWeights
     etf_mapping: EtfMapping
@@ -150,7 +151,7 @@ class RegimeHistoryItem(BaseModel):
     regime_color: str
     risk_level: int
     probability: float
-    total_score: int
+    total_score: float
     growth_score: int
     inflation_score: int
     financial_score: int
@@ -204,5 +205,5 @@ class TransitionsResponse(BaseModel):
 # ─── scores endpoint ─────────────────────────────────────────────────
 
 class ScoresResponse(BaseModel):
-    total_score: int
+    total_score: float
     breakdown: BreakdownResponse

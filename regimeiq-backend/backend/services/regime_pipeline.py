@@ -54,6 +54,10 @@ def _get_historical_df() -> pd.DataFrame:
             and (now - _cache["timestamp"]) < _CACHE_TTL):
         return _cache["historical_df"]
 
+    # Ensure model is trained before computing historical scores
+    from services.model_service import ensure_model_trained
+    ensure_model_trained()
+
     master = get_master_dataset()
     hist_sigs = compute_signals_historical(master)
     hist_scores = compute_scores_historical(hist_sigs)
@@ -80,17 +84,12 @@ def run_current_pipeline() -> dict:
         fedwatch = estimate_fedwatch_probabilities(master)
         cut_p = float(fedwatch["next_3m"]["cut"])
         hike_p = float(fedwatch["next_3m"]["hike"])
-        # Portfolio scoring hook: less cut probability implies stickier inflation risk.
+        # FedWatch adjustment: adjust inflation sub-score for display breakdown only.
+        # The model-predicted total_score is NOT recomputed — it stands as-is.
         if cut_p < 0.40:
             scores["inflation_score"] = min(scores["inflation_score"] + 1, 3)
         elif cut_p > 0.60 and hike_p < 0.20:
             scores["inflation_score"] = max(scores["inflation_score"] - 1, 0)
-        scores["total_score"] = (
-            scores["growth_score"]
-            + scores["inflation_score"]
-            + scores["financial_score"]
-            + scores["market_score"]
-        )
         regime = classify_regime(scores)
         alloc = get_allocation(regime["regime"])
 
@@ -108,6 +107,7 @@ def run_current_pipeline() -> dict:
             "fedwatch": fedwatch,
             "macro_release_calendar": next_macro_releases(),
             "global_macro": {
+                "fed_funds": _safe_num(latest.get("fed_funds")),
                 "fed_funds_3m_change": _safe_num(latest.get("fed_funds_3m_change")),
                 "real_rate_10y": _safe_num(latest.get("real_rate_10y")),
                 "cpi_yoy": _safe_num(latest.get("cpi_yoy")),
@@ -126,7 +126,7 @@ def run_current_pipeline() -> dict:
             "regime_color": "#eab308",
             "risk_level": 2,
             "probability": 0.5,
-            "total_score": -1,
+            "total_score": -1.0,
             "breakdown": {
                 "growth": {"score": 0, "max": 3},
                 "inflation": {"score": 0, "max": 3},
@@ -176,16 +176,11 @@ def run_snapshot_pipeline(date: str) -> dict:
 
     cut_p = float(fedwatch["next_3m"]["cut"])
     hike_p = float(fedwatch["next_3m"]["hike"])
+    # FedWatch adjustment for display breakdown only — model total_score stands
     if cut_p < 0.40:
         scores["inflation_score"] = min(scores["inflation_score"] + 1, 3)
     elif cut_p > 0.60 and hike_p < 0.20:
         scores["inflation_score"] = max(scores["inflation_score"] - 1, 0)
-    scores["total_score"] = (
-        scores["growth_score"]
-        + scores["inflation_score"]
-        + scores["financial_score"]
-        + scores["market_score"]
-    )
 
     regime = classify_regime(scores)
     alloc = get_allocation(regime["regime"])
@@ -255,7 +250,7 @@ def run_historical_pipeline(
             "regime_color": row["regime_color"],
             "risk_level": int(row["risk_level"]),
             "probability": float(row["probability"]),
-            "total_score": int(row["total_score"]),
+            "total_score": round(float(row["total_score"]), 2),
             "growth_score": int(row["growth_score"]),
             "inflation_score": int(row["inflation_score"]),
             "financial_score": int(row["financial_score"]),
