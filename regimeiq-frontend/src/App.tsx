@@ -12,13 +12,12 @@ import { PortfolioAllocation } from './components/PortfolioAllocation'
 import { GlobalMacroTab } from './components/GlobalMacroTab'
 import { RiskLabTab } from './components/RiskLabTab'
 import { PlaybookTab } from './components/PlaybookTab'
-import { SettingsTab } from './components/SettingsTab'
+import { UserPreferencesTab } from './components/UserPreferencesTab'
 import { HistoricalTab } from './components/HistoricalTab'
 import { PortfolioTab } from './components/PortfolioTab'
 import { ForecastTab } from './components/ForecastTab'
 import { AccountTab } from './components/AccountTab'
 import { PricingTab } from './components/PricingTab'
-import { UserPreferencesTab } from './components/UserPreferencesTab'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -256,16 +255,14 @@ export default function App() {
         />
       ) : activeView === 'riskLab' ? (
         <RiskLabTab />
-      ) : activeView === 'settings' ? (
-        <SettingsTab />
+      ) : activeView === 'settings' || activeView === 'preferences' ? (
+        <UserPreferencesTab />
       ) : activeView === 'historical' ? (
         <HistoricalTab />
       ) : activeView === 'portfolio' ? (
         <PortfolioTab allocation={data.allocation} regime={data.regime} />
       ) : activeView === 'forecast' ? (
         <ForecastTab regime={data.regime} fedwatch={data.fedwatch} releaseCalendar={data.macro_release_calendar} />
-      ) : activeView === 'preferences' ? (
-        <UserPreferencesTab />
       ) : activeView === 'account' ? (
         <AccountTab />
       ) : activeView === 'pricing' ? (
