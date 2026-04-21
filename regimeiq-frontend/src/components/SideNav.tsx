@@ -49,10 +49,7 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
 
   return (
     <aside className="fixed left-0 top-0 hidden md:flex flex-col h-screen w-64 bg-[#131316] py-6 space-y-2 z-40 pt-16 font-['Inter'] text-xs font-medium tracking-wide">
-      <div className="px-6 mb-8 mt-4">
-        <div className="text-base font-black text-[#e7e4ec] uppercase tracking-widest">Institutional Terminal</div>
-        <div className="text-[10px] text-on-surface-variant opacity-60">V3.4.2</div>
-      </div>
+      <div className="px-6 mb-4 mt-4" />
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
           const isActive = item.key === activeView
@@ -63,17 +60,18 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
               key={item.label}
               onClick={() => handleClick(item.key, locked)}
               title={locked ? 'Upgrade to Premium to unlock' : undefined}
-              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 transition-transform duration-200 ease-in-out rounded ${
+              className={`w-[calc(100%-1.5rem)] text-left px-3 py-2 mx-3 flex items-center gap-3 transition-all duration-200 ease-in-out rounded ${
                 locked
                   ? 'text-[#5a5f66] cursor-not-allowed hover:bg-transparent'
                   : isActive
-                    ? 'cursor-pointer bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c3c9d1] ring-1 ring-primary/30'
-                    : spotlight
-                      ? 'cursor-pointer text-[#c9ced6] hover:bg-[#19191d] hover:text-[#eceff3]'
-                      : 'cursor-pointer text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
+                    ? 'cursor-pointer bg-gradient-to-r from-[#181a1f] to-[#262b33] text-[#d8dde4] border-r-2 border-[#c6ff1f]'
+                    : 'cursor-pointer text-[#9ba3ad] hover:bg-[#19191d] hover:text-[#eceff3]'
               }`}
             >
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>
+              <span
+                className="material-symbols-outlined text-lg"
+                style={{ color: locked ? '#5a5f66' : isActive ? '#c6ff1f' : undefined }}
+              >{item.icon}</span>
               <span className="flex-1">{item.label}</span>
               {locked && (
                 <span className="material-symbols-outlined text-[14px] opacity-70">lock</span>
