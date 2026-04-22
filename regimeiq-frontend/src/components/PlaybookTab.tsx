@@ -154,7 +154,7 @@ export function PlaybookTab({ regime, totalScore, fedwatch, globalMacro }: Props
             {/* Now */}
             <div className="rounded-lg p-3" style={{ background: 'rgba(198,255,31,0.05)', border: '1px solid rgba(198,255,31,0.15)' }}>
               <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#c6ff1f' }}>Now</div>
-              <div className="text-sm text-on-surface">Regime score <span className="font-bold" style={{ color: '#c6ff1f' }}>{totalScore}/13</span> with {bias.toLowerCase()}.</div>
+              <div className="text-sm text-on-surface">Regime score <span className="font-bold" style={{ color: '#c6ff1f' }}>{totalScore}/10</span> with {bias.toLowerCase()}.</div>
             </div>
             {/* 3M */}
             <div className="rounded-lg p-3 border border-outline-variant/20 bg-surface-container-high">

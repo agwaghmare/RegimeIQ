@@ -232,7 +232,7 @@ export function HistoricalTab() {
                   background: regimeBarColor[t.regime] ?? '#6b7280',
                 }}
                 className="h-full"
-                title={`${t.date} — ${t.regime} (${t.total_score}/13)`}
+                title={`${t.date} — ${t.regime} (${t.total_score}/10)`}
               />
             ))}
           </div>
@@ -262,7 +262,7 @@ export function HistoricalTab() {
                     <div className="flex items-center gap-2 shrink-0 ml-3">
                       <RegimePill regime={e.regime} />
                       <span className="text-[10px] text-on-surface-variant tabular-nums">{e.detected_date}</span>
-                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: c.text }}>{e.total_score}/13</span>
+                      <span className="text-[10px] font-semibold tabular-nums" style={{ color: c.text }}>{e.total_score}/10</span>
                     </div>
                   </div>
                 )
