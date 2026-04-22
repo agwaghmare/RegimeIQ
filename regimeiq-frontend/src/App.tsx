@@ -18,6 +18,8 @@ import { PortfolioTab } from './components/PortfolioTab'
 import { ForecastTab } from './components/ForecastTab'
 import { AccountTab } from './components/AccountTab'
 import { PricingTab } from './components/PricingTab'
+import { PodcastButton } from './components/PodcastButton'
+import { PodcastPlayer } from './components/PodcastPlayer'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -137,6 +139,7 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(() => {
     return sessionStorage.getItem('regimeiq_intro_seen') !== 'true'
   })
+  const [showPodcastPlayer, setShowPodcastPlayer] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -512,6 +515,7 @@ export default function App() {
         </main>
       )}
 
+      {/* ── Bolt refresh FAB ── */}
       <div className="fixed bottom-6 left-6 z-50">
         <button
           onClick={refetch}
@@ -522,6 +526,12 @@ export default function App() {
           <span className="material-symbols-outlined">bolt</span>
         </button>
       </div>
+
+      {/* ── Podcast FAB + Player ── */}
+      <PodcastButton onClick={() => setShowPodcastPlayer(true)} />
+      {showPodcastPlayer && (
+        <PodcastPlayer onClose={() => setShowPodcastPlayer(false)} />
+      )}
     </div>
       )}
     </BankaiTransitionProvider>

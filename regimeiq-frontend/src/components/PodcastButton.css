@@ -1,0 +1,40 @@
+/* PodcastButton.css — identical dimensions to bolt FAB */
+
+.podcast-fab {
+  position: fixed;
+  z-index: 1000;
+
+  /* same as bolt: h-14 w-14 rounded-full */
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+
+  background: #19191d;
+  border: 1px solid rgba(195, 201, 209, 0.30);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.podcast-fab:hover {
+  border-color: rgba(195, 201, 209, 0.65);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.65);
+  transform: scale(1.08);
+}
+
+.podcast-fab:active { 
+  cursor: grabbing; 
+}
+
+.podcast-fab .material-symbols-outlined {
+  font-size: 22px;
+  color: rgba(195, 201, 209, 0.80);
+  pointer-events: none;
+  user-select: none;
+}
