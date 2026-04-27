@@ -11,6 +11,7 @@ from services.regime_pipeline import (
     run_historical_pipeline,
     run_summary_pipeline,
     run_forecast_pipeline,
+    run_snapshot_pipeline,
     _get_historical_df,
 )
 from services.regime_snapshot_service import get_regime_snapshot
@@ -264,3 +265,14 @@ def get_risk_lab():
         "crash_probability": round(crash_prob, 4),
         "risk_drivers": drivers,
     }
+
+
+@router.get(
+    "/snapshot",
+    summary="Full regime dashboard as of a historical date (no look-ahead)",
+)
+def get_regime_snapshot_by_date(date: str = Query(..., description="Target date YYYY-MM-DD")):
+    try:
+        return run_snapshot_pipeline(date)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

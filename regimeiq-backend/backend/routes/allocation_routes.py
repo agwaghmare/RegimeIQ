@@ -6,7 +6,11 @@ from fastapi import APIRouter, Query
 from typing import Optional
 
 from services.regime_pipeline import run_current_pipeline, run_historical_pipeline
-from services.allocation_service import get_allocation, get_allocation_transitions
+from services.allocation_service import (
+    get_allocation,
+    get_allocation_transitions,
+    get_rebalance_plan,
+)
 from schema.regime import AllocationCurrentResponse, TransitionsResponse
 
 router = APIRouter()
@@ -48,3 +52,15 @@ def get_transitions(
 
     transitions = get_allocation_transitions(df)
     return {"count": len(transitions), "data": transitions}
+
+
+@router.get(
+    "/rebalance-plan",
+    summary="ETF buy list, model portfolio, and regime-linked equity examples",
+)
+def get_rebalance_plan_endpoint(
+    risk_tolerance: str = Query("moderate", description="conservative|moderate|aggressive"),
+):
+    data = run_current_pipeline()
+    regime = data.get("regime", "Neutral")
+    return get_rebalance_plan(regime=regime, risk_tolerance=risk_tolerance)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useUser } from '../context/UserContext'
 import { canAccess, type View } from '../lib/tierAccess'
 
-type NavKey = 'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical'
+type NavKey = 'dashboard' | 'learn' | 'globalMacro' | 'playbook' | 'riskLab' | 'portfolio' | 'historical'
 
 type NavItem = {
   icon: string
@@ -12,6 +12,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { icon: 'dashboard', label: 'Dashboard', key: 'dashboard' },
+  { icon: 'school', label: 'Learn', key: 'learn' },
   { icon: 'public', label: 'Global Macro', key: 'globalMacro' },
   { icon: 'strategy', label: 'Strategy Desk', key: 'playbook' },
   { icon: 'warning', label: 'Risk Lab', key: 'riskLab' },
@@ -53,7 +54,6 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
           const isActive = item.key === activeView
-          const spotlight = item.key === 'playbook' || item.key === 'riskLab'
           const locked = !canAccess(user.plan, item.key)
           return (
             <button

@@ -8,6 +8,19 @@ interface PodcastData {
   generated_at: string;
 }
 
+const FALLBACK_BRIEFING =
+  'Macro briefing is temporarily unavailable from the feed. Market risk is mixed with elevated policy uncertainty, so keep sizing disciplined and review credit, volatility, and dollar trends before increasing beta.';
+
+function resolveApiUrl(path: string): string {
+  // Reuse the same API env behavior as lib/api.ts without duplicating exports.
+  const baseUrl =
+    import.meta.env.DEV && !import.meta.env.VITE_API_URL
+      ? ''
+      : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8001');
+  const apiPrefix = import.meta.env.DEV && !import.meta.env.VITE_API_URL ? '/api' : '';
+  return `${baseUrl}${apiPrefix}${path}`;
+}
+
 interface PodcastPlayerProps {
   onClose: () => void;
 }
@@ -64,7 +77,12 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({ onClose }) => {
       setCurrentTime(0);
       offsetRef.current = 0;
 
-      const res = await fetch('/podcast');
+      // Prefer canonical API path. Fallback keeps compatibility with older proxy setups.
+      const primaryUrl = resolveApiUrl('/podcast');
+      let res = await fetch(primaryUrl);
+      if (!res.ok && res.status === 404) {
+        res = await fetch('/podcast');
+      }
       if (cancelledRef.current) return;
 
       if (!res.ok) {
@@ -74,6 +92,11 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({ onClose }) => {
 
       const data: PodcastData = await res.json();
       if (cancelledRef.current) return;
+
+      const cleanedSummary = (data.text_summary ?? '').trim();
+      if (!cleanedSummary) {
+        data.text_summary = FALLBACK_BRIEFING;
+      }
 
       textRef.current     = data.text_summary;
       durationRef.current = data.duration_estimate || 60;
@@ -229,8 +252,6 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({ onClose }) => {
     const sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
-
-  const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
     <div className="podcast-player-overlay">

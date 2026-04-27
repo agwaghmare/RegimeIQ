@@ -20,6 +20,7 @@ import { AccountTab } from './components/AccountTab'
 import { PricingTab } from './components/PricingTab'
 import { PodcastButton } from './components/PodcastButton'
 import { PodcastPlayer } from './components/PodcastPlayer'
+import { LearnTab } from './components/LearnTab'
 import type { MetricRow, RegimeData } from './types/regime'
 import type { HistoricalInsightsResponse } from './lib/api'
 
@@ -134,7 +135,7 @@ export default function App() {
   const { data, loading, error, refetch, isLive } = useRegime()
   const [historicalInsights, setHistoricalInsights] = useState<HistoricalInsightsResponse | null>(null)
   const [activeView, setActiveView] = useState<
-    'dashboard' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio' | 'forecast' | 'preferences' | 'account' | 'pricing'
+    'dashboard' | 'learn' | 'globalMacro' | 'playbook' | 'riskLab' | 'settings' | 'historical' | 'portfolio' | 'forecast' | 'preferences' | 'account' | 'pricing'
   >('dashboard')
   const [showIntro, setShowIntro] = useState(() => {
     return sessionStorage.getItem('regimeiq_intro_seen') !== 'true'
@@ -249,6 +250,8 @@ export default function App() {
           fedwatch={data.fedwatch}
           releaseCalendar={data.macro_release_calendar}
         />
+      ) : activeView === 'learn' ? (
+        <LearnTab />
       ) : activeView === 'playbook' ? (
         <PlaybookTab
           regime={data.regime}
