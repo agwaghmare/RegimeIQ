@@ -84,7 +84,7 @@ export function SideNav({ activeView, onSelectView, onExport }: Props) {
         <button
           onClick={handleExport}
           disabled={exporting}
-          className="w-full py-2 bg-primary text-on-primary font-bold rounded hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2 bg-[#c6ff1f] text-[#0f1216] font-bold rounded hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span className="material-symbols-outlined text-sm">{exporting ? 'hourglass_empty' : 'download'}</span>
           <span>{exporting ? 'Exporting…' : 'Export Report'}</span>
