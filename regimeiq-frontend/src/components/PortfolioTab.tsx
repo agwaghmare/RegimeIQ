@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api'
 import { loadUserSettings } from '../lib/userSettings'
-import type { Allocation, RebalancePlan } from '../types/regime'
+import type { Allocation, RebalancePlan, RegimeEquityExample } from '../types/regime'
 
 interface Props {
   allocation: Allocation
@@ -202,6 +202,31 @@ export function PortfolioTab({ allocation, regime }: Props) {
           </div>
         )}
 
+        {plan?.regime_equity_examples && plan.regime_equity_examples.length > 0 && (
+          <div className="bg-surface-container rounded-xl border border-outline-variant/25 p-5">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+              Regime-linked single names
+            </h3>
+            <p className="text-[10px] text-on-surface-variant/80 mb-4">
+              Examples for <span className="font-semibold text-on-surface">{plan.regime}</span> — for research; not
+              back-tested in RegimeIQ data.
+            </p>
+            <div className="space-y-3">
+              {plan.regime_equity_examples.map((ex: RegimeEquityExample) => (
+                <div key={ex.ticker} className="flex gap-3 text-sm border-b border-outline-variant/10 pb-3 last:border-0 last:pb-0">
+                  <span className="font-mono text-xs px-2 py-1 rounded bg-surface-container-highest text-on-surface shrink-0 h-fit">
+                    {ex.ticker}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-medium text-on-surface">{ex.name}</div>
+                    <div className="text-xs text-on-surface-variant mt-0.5">{ex.role}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-surface-container rounded-xl border border-outline-variant/20 p-6 flex items-center justify-center">
             <svg viewBox="0 0 200 200" width={200} height={200} className="overflow-visible">
@@ -257,7 +282,13 @@ export function PortfolioTab({ allocation, regime }: Props) {
             pct={target.eq}
             color="#3b82f6"
             etfs={EQUITIES_ETFS}
-            placeholder={plan?.buy_recommendations?.stocks?.length ? `Favor: ${plan.buy_recommendations.stocks.map((s) => s.ticker).join(', ')}` : 'Individual Stocks — Coming Soon'}
+            placeholder={
+              plan?.regime_equity_examples?.length
+                ? `Examples: ${plan.regime_equity_examples.map((s) => s.ticker).join(', ')}`
+                : plan?.buy_recommendations?.stocks?.length
+                  ? `Favor: ${plan.buy_recommendations.stocks.map((s) => s.ticker).join(', ')}`
+                  : 'Individual Stocks — Coming Soon'
+            }
           />
           <AssetCard
             title="Fixed Income"

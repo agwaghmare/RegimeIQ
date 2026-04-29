@@ -50,6 +50,35 @@ ETF_MAPPING: dict[str, str] = {
     "alternatives":     "GLD",
 }
 
+# Illustrative single-name equities by regime (not price-scored in our CSVs).
+REGIME_EQUITY_EXAMPLES: dict[str, list[dict[str, str]]] = {
+    "Risk-On": [
+        {"ticker": "NVDA", "name": "NVIDIA", "role": "Semis / AI beta — typical risk-on leadership."},
+        {"ticker": "CAT", "name": "Caterpillar", "role": "Cyclical industrials — capex and early-cycle tilt."},
+        {"ticker": "AAPL", "name": "Apple", "role": "Quality mega-cap anchor for the growth sleeve."},
+    ],
+    "Neutral": [
+        {"ticker": "MSFT", "name": "Microsoft", "role": "Defensive mega-cap tech / recurring cash flows."},
+        {"ticker": "CAT", "name": "Caterpillar", "role": "Industrials barometer without full risk-on chase."},
+        {"ticker": "JNJ", "name": "Johnson & Johnson", "role": "Healthcare staples — lower-beta balance."},
+    ],
+    "Risk-Off": [
+        {"ticker": "KO", "name": "Coca-Cola", "role": "Staples — earnings visibility when growth slows."},
+        {"ticker": "PG", "name": "Procter & Gamble", "role": "Household demand — relative drawdown resilience."},
+        {"ticker": "CAT", "name": "Caterpillar", "role": "Smaller sleeve only; cyclical if conditions stabilize."},
+    ],
+    "Crisis": [
+        {"ticker": "WMT", "name": "Walmart", "role": "Discount retail — defensive consumer spend."},
+        {"ticker": "XLU", "name": "Utilities (sector ETF)", "role": "Low-beta yield when correlations spike."},
+        {"ticker": "GLD", "name": "Gold (GLD)", "role": "Aligns with crisis gold sleeve in the regime map."},
+    ],
+}
+
+
+def regime_equity_examples(regime: str) -> list[dict[str, str]]:
+    return [dict(x) for x in REGIME_EQUITY_EXAMPLES.get(regime, REGIME_EQUITY_EXAMPLES["Neutral"])]
+
+
 # ─── build-time validation ───────────────────────────────────────────
 
 for _regime, _alloc in ALLOCATION_MAP.items():
@@ -290,4 +319,5 @@ def get_rebalance_plan(regime: str, risk_tolerance: str = "moderate") -> dict:
         },
         "buy_recommendations": buy_recommendations,
         "model_portfolio": model_portfolio,
+        "regime_equity_examples": regime_equity_examples(regime),
     }

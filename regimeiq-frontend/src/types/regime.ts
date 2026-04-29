@@ -92,6 +92,13 @@ export interface RankedAsset {
   ann_vol: number
 }
 
+/** Illustrative single names for the active regime (not Sharpe-ranked in our data). */
+export interface RegimeEquityExample {
+  ticker: string
+  name: string
+  role: string
+}
+
 export interface RebalancePlan {
   regime: string
   risk_tolerance: string
@@ -110,4 +117,5 @@ export interface RebalancePlan {
     sharpe: number
     target_weight: number
   }>
+  regime_equity_examples?: RegimeEquityExample[]
 }

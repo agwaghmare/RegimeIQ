@@ -167,6 +167,67 @@ def run_current_pipeline() -> dict:
         }
 
 
+# ─── snapshot pipeline (as-of date) ───────────────────────────────────
+
+def run_snapshot_pipeline(date: str) -> dict:
+    """
+    Run the full pipeline AS OF a specific historical date.
+
+    Slices the master dataset up to (and including) the given date so rolling
+    metrics use only information available on that day. Matches
+    run_current_pipeline() fedwatch adjustments.
+    """
+    master = get_master_dataset()
+    target = pd.Timestamp(date)
+
+    subset = master[master.index <= target]
+    if subset.empty:
+        raise ValueError(
+            f"No data available on or before {date}. Earliest available: {master.index[0].date()}"
+        )
+
+    latest = subset.iloc[-1]
+    signals = compute_signals_latest(subset)
+    scores = compute_scores(signals)
+    fedwatch = estimate_fedwatch_probabilities(subset)
+
+    cut_p = float(fedwatch["next_3m"]["cut"])
+    hike_p = float(fedwatch["next_3m"]["hike"])
+    if cut_p < 0.40:
+        scores["inflation_score"] = min(scores["inflation_score"] + 1, 3)
+        scores["total_score"] = round(min(scores["total_score"] + 0.7, 10.0), 2)
+    elif cut_p > 0.60 and hike_p < 0.20:
+        scores["inflation_score"] = max(scores["inflation_score"] - 1, 0)
+        scores["total_score"] = round(max(scores["total_score"] - 0.7, 0.0), 2)
+
+    regime = classify_regime(scores)
+    alloc = get_allocation(regime["regime"])
+
+    return {
+        "date": signals["date"],
+        "regime": regime["regime"],
+        "regime_color": regime["regime_color"],
+        "risk_level": regime["risk_level"],
+        "probability": regime["probability"],
+        "total_score": regime["total_score"],
+        "breakdown": regime["breakdown"],
+        "allocation": alloc["allocation"],
+        "etf_mapping": alloc["etf_mapping"],
+        "signals": signals,
+        "fedwatch": fedwatch,
+        "macro_release_calendar": next_macro_releases(),
+        "global_macro": {
+            "fed_funds_3m_change": _safe_num(latest.get("fed_funds_3m_change")),
+            "real_rate_10y": _safe_num(latest.get("real_rate_10y")),
+            "cpi_yoy": _safe_num(latest.get("cpi_yoy")),
+            "dxy_3m_pct_change": _safe_num(signals["financial"].get("dxy_3m_pct_change")),
+            "boj_10y_yield": _safe_num(latest.get("boj_10y_yield")),
+            "ecb_policy_rate": _safe_num(latest.get("ecb_policy_rate")),
+            "uk_10y_gilt_yield": _safe_num(latest.get("uk_10y_gilt_yield")),
+        },
+    }
+
+
 # ─── historical pipeline ─────────────────────────────────────────────
 
 def run_historical_pipeline(
