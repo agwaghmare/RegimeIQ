@@ -35,7 +35,7 @@ interface RegimeApiResponse {
   allocation: {
     equities: number
     bonds: number
-    gold: number
+    alternatives: number
   }
   signals: {
     growth: Record<string, unknown>
@@ -88,9 +88,9 @@ export interface GlobalMacroHistoryResponse {
 export interface HistoricalInsightsResponse {
   timeline: Array<{ date: string; regime: string; total_score: number }>
   event_overlays: Array<{ event: string; input_date: string; detected_date: string; regime: string; total_score: number }>
-  transitions: Array<{ date: string; from_regime: string | null; to_regime: string; new_allocation: { equities: number; bonds: number; gold: number } }>
+  transitions: Array<{ date: string; from_regime: string | null; to_regime: string; new_allocation: { equities: number; bonds: number; alternatives: number } }>
   avg_duration_days: Record<string, number>
-  allocation_history: Array<{ date: string; regime: string; equities: number; bonds: number; gold: number }>
+  allocation_history: Array<{ date: string; regime: string; equities: number; bonds: number; alternatives: number }>
   performance_simulation: {
     model_return: number
     spy_return: number
@@ -237,7 +237,7 @@ function mapApiToRegimeData(raw: RegimeApiResponse): RegimeData {
     allocation: {
       equities: raw.allocation.equities,
       bonds: raw.allocation.bonds,
-      alternatives: raw.allocation.gold,
+      alternatives: raw.allocation.alternatives,
     },
     fedwatch: {
       source: raw.fedwatch?.source ?? 'unknown',

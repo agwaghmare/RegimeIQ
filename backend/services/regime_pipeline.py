@@ -145,7 +145,7 @@ def run_current_pipeline() -> dict:
                 "market": {"score": 0, "max": 4},
             },
             "allocation": ALLOCATION_MAP["Neutral"],
-            "etf_mapping": {"equities": "SPY", "bonds": "TLT", "gold": "GLD"},
+            "etf_mapping": {"equities": "SPY", "bonds": "TLT", "alternatives": "GLD"},
             "signals": {
                 "date": str(datetime.now().date()),
                 "growth": {},

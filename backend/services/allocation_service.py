@@ -4,10 +4,10 @@ allocation_service.py
 Maps regime labels → portfolio allocation weights.
 
 Allocation table:
-  Risk-On  : 75% equities, 15% bonds, 10% gold
-  Neutral  : 55% equities, 35% bonds, 10% gold
-  Risk-Off : 35% equities, 55% bonds, 10% gold
-  Crisis   : 15% equities, 65% bonds, 20% gold
+  Risk-On  : 75% equities, 15% bonds, 10% alternatives
+  Neutral  : 55% equities, 35% bonds, 10% alternatives
+  Risk-Off : 35% equities, 55% bonds, 10% alternatives
+  Crisis   : 15% equities, 65% bonds, 20% alternatives
 """
 
 from __future__ import annotations
@@ -24,22 +24,22 @@ ALLOCATION_MAP: dict[str, dict[str, float]] = {
     "Risk-On": {
         "equities": 0.75,
         "bonds":    0.15,
-        "gold":     0.10,
+        "alternatives":     0.10,
     },
     "Neutral": {
         "equities": 0.55,
         "bonds":    0.35,
-        "gold":     0.10,
+        "alternatives":     0.10,
     },
     "Risk-Off": {
         "equities": 0.35,
         "bonds":    0.55,
-        "gold":     0.10,
+        "alternatives":     0.10,
     },
     "Crisis": {
         "equities": 0.15,
         "bonds":    0.65,
-        "gold":     0.20,
+        "alternatives":     0.20,
     },
 }
 
@@ -47,7 +47,7 @@ ALLOCATION_MAP: dict[str, dict[str, float]] = {
 ETF_MAPPING: dict[str, str] = {
     "equities": "SPY",
     "bonds":    "TLT",
-    "gold":     "GLD",
+    "alternatives":     "GLD",
 }
 
 # ─── build-time validation ───────────────────────────────────────────
@@ -103,11 +103,11 @@ def get_allocation_historical(regime_df: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
-    Same DataFrame with added columns: alloc_equities, alloc_bonds, alloc_gold.
+    Same DataFrame with added columns: alloc_equities, alloc_bonds, alloc_alternatives.
     """
     df = regime_df.copy()
 
-    for asset in ["equities", "bonds", "gold"]:
+    for asset in ["equities", "bonds", "alternatives"]:
         df[f"alloc_{asset}"] = df["regime"].map(
             lambda r, a=asset: ALLOCATION_MAP.get(r, ALLOCATION_MAP["Neutral"])[a]
         )
@@ -233,7 +233,7 @@ def get_rebalance_plan(regime: str, risk_tolerance: str = "moderate") -> dict:
         base["equities"] = min(0.90, base["equities"] + 0.10)
         base["bonds"] = max(0.05, base["bonds"] - 0.10)
 
-    total = base["equities"] + base["bonds"] + base["gold"]
+    total = base["equities"] + base["bonds"] + base["alternatives"]
     for k in base:
         base[k] = base[k] / total
 
@@ -255,7 +255,7 @@ def get_rebalance_plan(regime: str, risk_tolerance: str = "moderate") -> dict:
     commodities_count = max(1, len(buy_recommendations["commodities"]))
     eq_w = base["equities"] / equities_count
     bd_w = base["bonds"] / bonds_count
-    cm_w = base["gold"] / commodities_count
+    cm_w = base["alternatives"] / commodities_count
 
     target_weights: dict[str, float] = {}
     for a in buy_recommendations["stocks"]:
@@ -286,7 +286,7 @@ def get_rebalance_plan(regime: str, risk_tolerance: str = "moderate") -> dict:
         "bucket_weights": {
             "equities": round(base["equities"], 4),
             "bonds": round(base["bonds"], 4),
-            "commodities": round(base["gold"], 4),
+            "commodities": round(base["alternatives"], 4),
         },
         "buy_recommendations": buy_recommendations,
         "model_portfolio": model_portfolio,

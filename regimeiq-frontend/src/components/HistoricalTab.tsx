@@ -319,7 +319,7 @@ export function HistoricalTab() {
             {(insights?.allocation_history ?? []).slice(-18).reverse().map((a, idx) => {
               const eq = Math.round(a.equities * 100)
               const bd = Math.round(a.bonds * 100)
-              const gd = Math.round(a.gold * 100)
+              const gd = Math.round(a.alternatives * 100)
               return (
                 <div key={`${a.date}-${idx}`} className="flex items-center gap-4 rounded px-3 py-2"
                   style={{ background: 'rgba(255,255,255,0.03)' }}>
