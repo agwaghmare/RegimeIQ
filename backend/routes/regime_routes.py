@@ -168,7 +168,7 @@ def get_historical_insights():
             "regime": row["regime"],
             "equities": float(row["alloc_equities"]),
             "bonds": float(row["alloc_bonds"]),
-            "gold": float(row["alloc_gold"]),
+            "alternatives": float(row["alloc_alternatives"]),
         }
         for dt, row in alloc_monthly.iterrows()
     ]
@@ -177,12 +177,12 @@ def get_historical_insights():
     cols_ok = all(c in master.columns for c in ["sp500", "tlt", "gld"])
     perf = {}
     if cols_ok:
-        joined = master.join(alloc_hist[["alloc_equities", "alloc_bonds", "alloc_gold"]], how="inner")
+        joined = master.join(alloc_hist[["alloc_equities", "alloc_bonds", "alloc_alternatives"]], how="inner")
         rets = joined[["sp500", "tlt", "gld"]].pct_change().fillna(0.0)
         model_r = (
             joined["alloc_equities"] * rets["sp500"]
             + joined["alloc_bonds"] * rets["tlt"]
-            + joined["alloc_gold"] * rets["gld"]
+            + joined["alloc_alternatives"] * rets["gld"]
         )
         spy_r = rets["sp500"]
         model_curve = (1 + model_r).cumprod()

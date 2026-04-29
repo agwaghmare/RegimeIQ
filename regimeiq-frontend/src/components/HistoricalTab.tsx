@@ -211,7 +211,7 @@ export function HistoricalTab() {
       </div>
 
       {/* ── Section B: Historical Model Backtest ────────────────────── */}
-      <div className="space-y-6">
+      {!snapshotData && <div className="space-y-6">
         <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
           Historical Model Backtest
         </h2>
@@ -341,7 +341,7 @@ export function HistoricalTab() {
             })}
           </div>
         </div>
-      </div>
+      </div>}
     </section>
   )
 }

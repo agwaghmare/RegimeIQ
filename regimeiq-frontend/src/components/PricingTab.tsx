@@ -84,6 +84,8 @@ export function PricingTab() {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {TIERS.map((tier) => {
           const isCurrent = user.plan === tier.id
+          const tierOrder: Record<string, number> = { free: 0, basic: 1, premium: 2 }
+          const isDowngrade = !isCurrent && (tierOrder[tier.id] ?? 0) < (tierOrder[user.plan] ?? 0)
           return (
             <div
               key={tier.id}
@@ -127,7 +129,7 @@ export function PricingTab() {
                       : 'bg-primary text-on-primary hover:opacity-90'
                 }`}
               >
-                {isCurrent ? 'Current Plan' : tier.id === 'free' ? 'Downgrade' : 'Upgrade'}
+                {isCurrent ? 'Current Plan' : isDowngrade ? 'Downgrade' : 'Upgrade'}
               </button>
             </div>
           )

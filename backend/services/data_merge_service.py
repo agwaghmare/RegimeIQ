@@ -46,16 +46,21 @@ def _is_dataset_stale(df: pd.DataFrame) -> bool:
 
 def _load_macro() -> pd.DataFrame:
     """Load cleaned macro data (monthly frequency)."""
-    df = pd.read_csv(MACRO_CSV, index_col=0, parse_dates=True)
+    df = pd.read_csv(MACRO_CSV, index_col=0, parse_dates=False)
+    df.index = pd.to_datetime(df.index, errors="coerce")
     df.index.name = "Date"
+    df = df[df.index.notna()]
     df = df.sort_index()
     return df
 
 
 def _load_market() -> pd.DataFrame:
     """Load raw market data (daily frequency)."""
-    df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=True)
+    df = pd.read_csv(MARKET_CSV, index_col=0, parse_dates=False)
+    # Force datetime — stray non-date rows (e.g. trailing garbage) become NaT and get dropped.
+    df.index = pd.to_datetime(df.index, errors="coerce")
     df.index.name = "Date"
+    df = df[df.index.notna()]
     df = df.sort_index()
     # yfinance concat / CSV round-trips can introduce duplicate column names; keep first.
     df = df.loc[:, ~df.columns.duplicated(keep="first")]
@@ -149,8 +154,10 @@ def get_master_dataset() -> pd.DataFrame:
     otherwise build from scratch.
     """
     if os.path.exists(MASTER_CSV):
-        df = pd.read_csv(MASTER_CSV, index_col=0, parse_dates=True)
+        df = pd.read_csv(MASTER_CSV, index_col=0, parse_dates=False)
+        df.index = pd.to_datetime(df.index, errors="coerce")
         df.index.name = "Date"
+        df = df[df.index.notna()]
         df = df.loc[:, ~df.columns.duplicated(keep="first")]
 
         # Hygiene guard: historical bad caches may store non-PMI values
