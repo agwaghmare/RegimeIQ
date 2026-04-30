@@ -1,6 +1,7 @@
 """
 Podcast Mode Service
-Generates macro briefing text via Mistral AI + audio via Voxtral TTS SDK
+Generates macro briefing text via Mistral AI + audio via ElevenLabs TTS.
+Falls back to Voxtral (Mistral TTS) if ElevenLabs is unavailable.
 """
 
 import os
@@ -13,16 +14,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 _podcast_cache: Dict[str, Any] = {}
-CACHE_TTL_MINUTES = 10
+CACHE_TTL_MINUTES = 1440  # 24 hours
 
-# Confirmed working voice IDs from Voxtral TTS preset library
-# See: https://console.mistral.ai (Studio > Audio > Voices)
-VOXTRAL_VOICE = "river"   # neutral English male — change to "aurora" for female
+ELEVENLABS_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam — deep authoritative male
+VOXTRAL_VOICE = "river"   # fallback voice if ElevenLabs unavailable
 
 
 class PodcastService:
     def __init__(self):
         self.mistral_api_key = os.getenv("MISTRAL_API_KEY")
+        self.elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY", "").strip() or None
         self.mistral_chat_url = "https://api.mistral.ai/v1/chat/completions"
         self.mistral_tts_url  = "https://api.mistral.ai/v1/audio/speech"
 
@@ -38,8 +39,16 @@ class PodcastService:
         logger.info("Generating text summary with Mistral AI")
         text_summary = await self._generate_summary_mistral(news_data)
 
-        logger.info("Generating audio with Voxtral TTS")
-        audio_base64 = await self._generate_audio_voxtral(text_summary)
+        if self.elevenlabs_api_key:
+            logger.info("Generating audio with ElevenLabs TTS")
+            try:
+                audio_base64 = await self._generate_audio_elevenlabs(text_summary)
+            except Exception as e:
+                logger.error(f"ElevenLabs failed: {e} — falling back to Voxtral")
+                audio_base64 = await self._generate_audio_voxtral(text_summary)
+        else:
+            logger.info("Generating audio with Voxtral TTS (no ElevenLabs key)")
+            audio_base64 = await self._generate_audio_voxtral(text_summary)
 
         word_count        = len(text_summary.split())
         duration_estimate = int((word_count / 150) * 60)
@@ -102,12 +111,31 @@ Output ONLY the spoken text."""
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"].strip()
 
+    async def _generate_audio_elevenlabs(self, text: str) -> str:
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                url,
+                headers={
+                    "xi-api-key": self.elevenlabs_api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "audio/mpeg",
+                },
+                json={
+                    "text": text,
+                    "model_id": "eleven_multilingual_v2",
+                    "voice_settings": {
+                        "stability": 0.5,
+                        "similarity_boost": 0.75,
+                    },
+                },
+            )
+            response.raise_for_status()
+            audio_b64 = base64.b64encode(response.content).decode("utf-8")
+            logger.info(f"Audio generated via ElevenLabs: {len(response.content):,} bytes")
+            return audio_b64
+
     async def _generate_audio_voxtral(self, text: str) -> str:
-        """
-        Generate audio using voxtral-mini-tts-latest.
-        Uses the mistralai SDK to ensure correct request format.
-        Falls back to empty string (browser TTS) if audio fails.
-        """
         try:
             from mistralai import Mistral
             client = Mistral(api_key=self.mistral_api_key)
@@ -119,7 +147,6 @@ Output ONLY the spoken text."""
                 response_format="mp3"
             )
 
-            # response is bytes or has .content
             if hasattr(response, 'content'):
                 audio_bytes = response.content
             elif hasattr(response, 'read'):
@@ -128,21 +155,17 @@ Output ONLY the spoken text."""
                 audio_bytes = bytes(response)
 
             audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
-            logger.info(f"Audio generated via SDK: {len(audio_bytes):,} bytes")
+            logger.info(f"Audio generated via Voxtral SDK: {len(audio_bytes):,} bytes")
             return audio_b64
 
         except ImportError:
             logger.warning("mistralai SDK not installed, falling back to httpx")
-            return await self._generate_audio_httpx(text)
+            return await self._generate_audio_voxtral_httpx(text)
         except Exception as e:
             logger.error(f"Voxtral SDK error: {str(e)} — falling back to httpx")
-            return await self._generate_audio_httpx(text)
+            return await self._generate_audio_voxtral_httpx(text)
 
-    async def _generate_audio_httpx(self, text: str) -> str:
-        """
-        Direct httpx fallback. Lists available voices first to use a valid one.
-        Returns empty string on failure (browser TTS handles it).
-        """
+    async def _generate_audio_voxtral_httpx(self, text: str) -> str:
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
@@ -160,12 +183,12 @@ Output ONLY the spoken text."""
                 )
                 response.raise_for_status()
                 audio_b64 = base64.b64encode(response.content).decode("utf-8")
-                logger.info(f"Audio generated via httpx: {len(response.content):,} bytes")
+                logger.info(f"Audio generated via Voxtral httpx: {len(response.content):,} bytes")
                 return audio_b64
 
         except Exception as e:
             logger.error(f"Voxtral httpx error: {str(e)} — returning empty, browser TTS will handle")
-            return ""   # graceful fallback to browser TTS
+            return ""
 
     def _get_cached_podcast(self, key: str) -> Optional[Dict[str, Any]]:
         if key in _podcast_cache:
