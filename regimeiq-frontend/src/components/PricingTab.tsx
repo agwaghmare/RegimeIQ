@@ -15,8 +15,8 @@ interface Tier {
 
 const TIERS: Tier[] = [
   { id: 'free', name: 'Free', tagline: 'Get a feel for the regime', monthly: 0, annual: 0 },
-  { id: 'basic', name: 'Basic', tagline: 'Daily terminal for active users', monthly: 10, annual: 100 },
-  { id: 'premium', name: 'Premium', tagline: 'Full forecasting + history', monthly: 20, annual: 200, highlight: true },
+  { id: 'basic', name: 'Basic', tagline: 'Daily terminal for active users', monthly: 10, annual: 100, highlight: true },
+  { id: 'premium', name: 'Premium', tagline: 'Full forecasting + history', monthly: 20, annual: 200 },
 ]
 
 type FeatureRow = {
